@@ -1,0 +1,47 @@
+---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: kube-system-dex
+data:
+  chart_name: dex
+  release: dex
+  namespace: kube-system
+  wait:
+    timeout: 1800
+    labels:
+      app: dex
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+    pre:
+      delete:
+        - type: job
+          labels:
+            app: dex
+  source:
+    type: tar
+    location: http://172.17.0.1:8080/helm_charts/stx-platform/dex-0.8.0.tgz
+    subpath: dex
+    reference: master
+  dependencies: []
+---
+schema: armada/ChartGroup/v1
+metadata:
+  schema: metadata/Document/v1
+  name: starlingx-dex-charts
+data:
+  description: StarlingX Dex Charts
+  sequenced: true
+  chart_group:
+  - kube-system-dex
+---
+schema: armada/Manifest/v1
+metadata:
+  schema: metadata/Document/v1
+  name: oidc-auth-manifest
+data:
+  release_prefix: oidc
+  chart_groups:
+  - starlingx-dex-charts
