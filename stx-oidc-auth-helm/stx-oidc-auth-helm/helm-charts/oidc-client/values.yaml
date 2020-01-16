@@ -1,0 +1,48 @@
+#
+# Copyright (c) 2020 Wind River Systems, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+# Default values for stx-oidc-client.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicas: 1
+
+image:
+  repository: docker.io/starlingx/stx-oidc-client
+  tag: v1.0.0
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: NodePort
+  port: 5555
+  nodePort: 30555
+
+config:
+  client_id: stx-oidc-client-app
+  client_secret: St8rlingX
+  issuer: https://10.10.10.3:30556/dex
+  issuer_root_ca: /home/dex-ca.pem
+  listen: http://0.0.0.0:5555
+  redirect_uri: http://10.10.10.3:30555/callback
+
+ingress:
+  enabled: false
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths: []
+  tls: []
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

@@ -1,0 +1,23 @@
+{{/*
+#
+# Copyright (c) 2020 Wind River Systems, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+*/}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: stx-oidc-client
+  labels:
+    app: stx-oidc-client
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 5555
+      protocol: TCP
+      name: http
+      nodePort: {{ .Values.service.nodePort }}
+  selector:
+    app: stx-oidc-client

@@ -1,0 +1,70 @@
+{{/*
+#
+# Copyright (c) 2020 Wind River Systems, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+*/}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stx-oidc-client
+  labels:
+    app: stx-oidc-client
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: stx-oidc-client
+  template:
+    metadata:
+      labels:
+        app: stx-oidc-client
+    spec:
+      imagePullSecrets:
+        - name: default-registry-key
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command: ["./stx-oidc-client"]
+          args: ["--config", "config.yaml", "--debug"]
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5555
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - mountPath: "/home"
+              name: dex-client-secret-volume
+            - name: config
+              subPath: config.yaml
+              mountPath: /app/config.yaml
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      volumes:
+        - name: dex-client-secret-volume
+          secret:
+            secretName: dex-client-secret
+        - name: config
+          configMap:
+            name: stx-oidc-client

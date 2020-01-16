@@ -8,8 +8,6 @@
 # Build variables
 %global helm_folder /usr/lib/helm
 
-%global sha 92b6289ae93816717a8453cfe62bad51cbdb8ad0
-
 Summary: StarlingX OIDC auth Helm charts
 Name: stx-oidc-auth-helm
 Version: 1.0
@@ -19,29 +17,19 @@ Group: base
 Packager: Wind River <info@windriver.com>
 URL: unknown
 
-#Source0: %{name}-%{version}.tar.gz
-Source0: helm-charts-%{sha}.tar.gz
-Source1: repositories.yaml
-Source2: index.yaml
-Source3: metadata.yaml
-Source4: manifest.yaml
-Source5: Makefile
-
-Patch01: 0001-Update-Dex-chart-for-Kubernetes-API-1.16.patch
-Patch02: 0002-add-image-pull-secrets.patch
+Source0: %{name}-%{version}.tar.gz
 
 BuildArch: noarch
 
 BuildRequires: helm
+BuildRequires: dex-helm
+Requires: dex-helm
 
 %description
 StarlingX OIDC auth Helm charts
 
 %prep
-#%setup
-%setup -n helm-charts
-%patch01 -p1
-%patch02 -p1
+%setup
 
 %build
 # initialize helm
@@ -58,10 +46,10 @@ mkdir  %{helm_home}/cache
 mkdir  %{helm_home}/cache/archive
 
 # Stage a repository file that only has a local repo
-cp %{SOURCE1} %{helm_home}/repository/repositories.yaml
+cp files/repositories.yaml %{helm_home}/repository/repositories.yaml
 
 # Stage a local repo index that can be updated by the build
-cp %{SOURCE2} %{helm_home}/repository/local/index.yaml
+cp files/index.yaml %{helm_home}/repository/local/index.yaml
 
 # Host a server for the charts
 helm serve --repo-path . &
@@ -69,9 +57,8 @@ helm repo rm local
 helm repo add local http://localhost:8879/charts
 
 # Make the charts. These produce a tgz file
-cp %{SOURCE5} stable
-cd stable
-make dex
+cd helm-charts
+make oidc-client
 cd -
 
 # Terminate helm server (the last backgrounded task)
@@ -83,10 +70,11 @@ kill %1
 
 # Setup staging
 mkdir -p %{app_staging}
-cp %{SOURCE3} %{app_staging}
-cp %{SOURCE4} %{app_staging}
+cp files/metadata.yaml %{app_staging}
+cp manifests/manifest.yaml %{app_staging}
 mkdir -p %{app_staging}/charts
-cp stable/*.tgz %{app_staging}/charts
+cp helm-charts/*.tgz %{app_staging}/charts
+cp %{helm_folder}/dex*.tgz %{app_staging}/charts
 cd %{app_staging}
 
 # Populate metadata

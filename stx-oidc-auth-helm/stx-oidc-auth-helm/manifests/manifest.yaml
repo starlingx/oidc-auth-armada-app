@@ -50,6 +50,43 @@ data:
     reference: master
   dependencies: []
 ---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: kube-system-oidc-client
+data:
+  chart_name: oidc-client
+  release: oidc-client
+  namespace: kube-system
+  wait:
+    timeout: 1800
+    labels:
+      app: dex
+  install:
+    no_hooks: false
+  upgrade:
+    no_hooks: false
+    pre:
+      delete:
+        - type: job
+          labels:
+            app: oidc-client
+  values:
+    config:
+      issuer_root_ca: /home/dex-ca.pem
+      listen: http://0.0.0.0:5555
+    nodeSelector:
+      node-role.kubernetes.io/master: ""
+    service:
+      type: NodePort
+      port: 5555
+  source:
+    type: tar
+    location: http://172.17.0.1:8080/helm_charts/stx-platform/oidc-client-0.1.0.tgz
+    subpath: oidc-client
+    reference: master
+  dependencies: []
+---
 schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
@@ -59,6 +96,7 @@ data:
   sequenced: true
   chart_group:
   - kube-system-dex
+  - kube-system-oidc-client
 ---
 schema: armada/Manifest/v1
 metadata:

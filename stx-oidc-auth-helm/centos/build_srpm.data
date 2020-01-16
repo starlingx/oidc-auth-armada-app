@@ -1,7 +1,3 @@
-TAR_NAME=helm-charts
-SHA=92b6289ae93816717a8453cfe62bad51cbdb8ad0
-VERSION=1.0.0
-TAR="$TAR_NAME-$SHA.tar.gz"
+SRC_DIR="stx-oidc-auth-helm"
 
-COPY_LIST="${CGCS_BASE}/downloads/helm-charts-92b6289ae93816717a8453cfe62bad51cbdb8ad0.tar.gz $PKG_BASE/files/* "
 TIS_PATCH_VER=0
