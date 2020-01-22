@@ -20,6 +20,29 @@ data:
         - type: job
           labels:
             app: dex
+  values:
+    config:
+      enablePasswordDB: false
+      web:
+        https: 0.0.0.0:5556
+        tlsCert: /etc/dex/tls/https/server/tls.crt
+        tlsKey: /etc/dex/tls/https/server/tls.key
+    service:
+      type: NodePort
+    nodeSelector:
+      node-role.kubernetes.io/master: ""
+    certs:
+      web:
+        create: false
+        secret:
+          tlsName: local-dex.tls
+          caName: local-dex.tls
+      grpc:
+        create: false
+        secret:
+          serverTlsName: local-dex.tls
+          clientTlsName: local-dex.tls
+          caName: local-dex.tls
   source:
     type: tar
     location: http://172.17.0.1:8080/helm_charts/stx-platform/dex-0.8.0.tgz
