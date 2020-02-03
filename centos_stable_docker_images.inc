@@ -1,1 +1,2 @@
 stx-oidc-client
+dex

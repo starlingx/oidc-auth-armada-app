@@ -1,0 +1,5 @@
+BUILDER=docker
+LABEL=dex
+DOCKER_REPO=https://github.com/dexidp/dex.git
+DOCKER_REF=f1581ff873a200cf9dd01bf261e056267d57b991 # SHA for v2.14.0, as of Jan 21, 2020
+DOCKER_PATCHES="docker_patches/0001-Wrap-Kubernetes-host-address-in-square-brackets.patch"
