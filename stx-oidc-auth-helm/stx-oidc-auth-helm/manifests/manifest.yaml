@@ -21,6 +21,8 @@ data:
           labels:
             app: dex
   values:
+    image: "docker.io/starlingx/dex"
+    imageTag: "master-centos-stable-latest"
     config:
       enablePasswordDB: false
       web:
