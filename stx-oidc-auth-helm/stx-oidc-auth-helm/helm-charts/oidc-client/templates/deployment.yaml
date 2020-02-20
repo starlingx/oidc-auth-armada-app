@@ -37,15 +37,19 @@ spec:
             httpGet:
               path: /
               port: http
+              scheme: HTTPS
           readinessProbe:
             httpGet:
               path: /
               port: http
+              scheme: HTTPS
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - mountPath: "/home"
               name: dex-client-secret-volume
+            - mountPath: /etc/dex/tls/https/server
+              name: https-tls
             - name: config
               subPath: config.yaml
               mountPath: /app/config.yaml
@@ -65,6 +69,9 @@ spec:
         - name: dex-client-secret-volume
           secret:
             secretName: dex-client-secret
+        - name: https-tls
+          secret:
+            secretName: local-dex.tls
         - name: config
           configMap:
             name: stx-oidc-client
