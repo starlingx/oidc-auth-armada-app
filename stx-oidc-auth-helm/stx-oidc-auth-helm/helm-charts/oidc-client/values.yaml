@@ -12,7 +12,7 @@ replicas: 1
 
 image:
   repository: docker.io/starlingx/stx-oidc-client
-  tag: stx.4.0-v1.0.0
+  tag: stx.4.0-v1.0.1
   pullPolicy: IfNotPresent
 
 nameOverride: ""
