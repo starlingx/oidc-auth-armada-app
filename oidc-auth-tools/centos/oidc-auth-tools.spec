@@ -16,6 +16,8 @@ BuildRequires: python-setuptools
 BuildRequires: python2-wheel
 
 Requires: python2-mechanize
+Requires: python2-html5lib
+Requires: python2-webencodings
 Requires: python-pbr >= 2.0.0
 
 
