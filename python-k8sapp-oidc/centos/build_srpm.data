@@ -1,0 +1,6 @@
+SRC_DIR="k8sapp_oidc"
+
+# Keep the SRCREV in sync with stx-oidc-auth-helm so the app version is the same
+# as the plugin version
+TIS_BASE_SRCREV=860834c14ba54eb047ef02bde7a1f2407ce700ad
+TIS_PATCH_VER=GITREVCOUNT
