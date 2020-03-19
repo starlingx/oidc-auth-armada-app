@@ -45,6 +45,16 @@ data:
           serverTlsName: local-dex.tls
           clientTlsName: local-dex.tls
           caName: local-dex.tls
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - dex
+          topologyKey: kubernetes.io/hostname
   source:
     type: tar
     location: http://172.17.0.1:8080/helm_charts/stx-platform/dex-0.8.0.tgz
@@ -84,6 +94,16 @@ data:
     service:
       type: NodePort
       port: 5555
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - stx-oidc-client
+          topologyKey: kubernetes.io/hostname
   source:
     type: tar
     location: http://172.17.0.1:8080/helm_charts/stx-platform/oidc-client-0.1.0.tgz
