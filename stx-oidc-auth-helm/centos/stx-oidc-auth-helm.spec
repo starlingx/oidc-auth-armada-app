@@ -32,37 +32,12 @@ StarlingX OIDC auth Helm charts
 %setup
 
 %build
-# initialize helm
-# helm init --client-only does not work if there is no networking
-# The following commands do essentially the same as: helm init
-%define helm_home  %{getenv:HOME}/.helm
-mkdir  %{helm_home}
-mkdir  %{helm_home}/repository
-mkdir  %{helm_home}/repository/cache
-mkdir  %{helm_home}/repository/local
-mkdir  %{helm_home}/plugins
-mkdir  %{helm_home}/starters
-mkdir  %{helm_home}/cache
-mkdir  %{helm_home}/cache/archive
-
-# Stage a repository file that only has a local repo
-cp files/repositories.yaml %{helm_home}/repository/repositories.yaml
-
-# Stage a local repo index that can be updated by the build
-cp files/index.yaml %{helm_home}/repository/local/index.yaml
-
-# Host a server for the charts
-helm serve --repo-path . &
-helm repo rm local
-helm repo add local http://localhost:8879/charts
-
+# This chart does not require chartmuseum server since
+# it has no dependency on local or stable repos.
 # Make the charts. These produce a tgz file
 cd helm-charts
 make oidc-client
 cd -
-
-# Terminate helm server (the last backgrounded task)
-kill %1
 
 # Create a chart tarball compliant with sysinv kube-app.py
 %define app_staging %{_builddir}/staging
