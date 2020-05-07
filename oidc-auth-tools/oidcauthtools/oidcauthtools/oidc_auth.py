@@ -23,6 +23,8 @@ def main():
                         required=True)
     parser.add_argument("-p", "--password", dest="password",
                         help="Password")
+    parser.add_argument("-b", "--backend", dest="backend",
+                        help="Dex configured backend name")
 
     parser.add_argument("-v", "--verbose", action='count')
     args = parser.parse_args()
@@ -51,6 +53,31 @@ def main():
 
     # Open browser on dexClientUrl
     dexLoginPage = br.open(dexClientUrl)
+
+    # If there are links on this page, then more than one
+    # backends are configured. Pick the correct backend
+    if len(br.links()) > 0:
+        if not args.backend:
+            print("Multiple backends detected, please select one with -b")
+            sys.exit(1)
+
+        found_backend = False
+        all_backends = []
+        for link in br.links():
+            if not link.text.startswith("Log in with "):
+                print("Error reading backend: %s" % link.text)
+
+            all_backends.append(link.text[len("Log in with "):])
+            if verbose:
+                print("backend: %s" % all_backends[-1])
+
+            if all_backends[-1] == args.backend:
+                br.follow_link(link)
+                found_backend = True
+
+        if not found_backend:
+            print("Backend not found, please choose one of: %s" % all_backends)
+            sys.exit(1)
 
     # NOW ON DEX LOGIN PAGE
     if verbose:
