@@ -27,6 +27,7 @@ Source3: Makefile
 Patch01: 0001-Update-Dex-chart-for-Kubernetes-API-1.16.patch
 Patch02: 0002-add-image-pull-secrets.patch
 Patch03: 0003-Add-affinity-support.patch
+Patch04: 0004-Automatically-roll-deployments.patch
 
 BuildArch: noarch
 
@@ -41,6 +42,7 @@ StarlingX OIDC auth Helm charts
 %patch01 -p1
 %patch02 -p1
 %patch03 -p1
+%patch04 -p1
 
 %build
 # initialize helm
