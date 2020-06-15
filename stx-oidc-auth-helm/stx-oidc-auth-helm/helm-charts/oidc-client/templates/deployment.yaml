@@ -27,7 +27,7 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           command: ["./stx-oidc-client"]
-          args: ["--config", "config.yaml", "--debug"]
+          args: ["--config", "/etc/dex/cfg/config.yaml", "--debug"]
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
@@ -51,8 +51,7 @@ spec:
             - mountPath: /etc/dex/tls/https/server
               name: https-tls
             - name: config
-              subPath: config.yaml
-              mountPath: /app/config.yaml
+              mountPath: /etc/dex/cfg
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
