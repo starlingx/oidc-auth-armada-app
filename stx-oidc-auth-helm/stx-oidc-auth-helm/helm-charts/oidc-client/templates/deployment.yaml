@@ -13,6 +13,11 @@ metadata:
     app: stx-oidc-client
 spec:
   replicas: {{ .Values.replicas }}
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
   selector:
     matchLabels:
       app: stx-oidc-client
