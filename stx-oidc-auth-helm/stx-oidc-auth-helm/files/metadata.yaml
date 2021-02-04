@@ -2,3 +2,17 @@ app_name: @APP_NAME@
 app_version: @APP_VERSION@
 helm_repo: @HELM_REPO@
 maintain_user_overrides: true
+behavior:
+  platform_managed_app: yes
+  desired_state: uploaded
+  evaluate_reapply: # TODO(dvoicule): optimize triggers
+    after:
+      - platform-integ-apps
+    triggers:
+      - type: runtime-apply-puppet
+      - type: host-availability-updated
+        filters:
+          - availability: services-enabled
+      - type: host-delete
+        filters:
+          - personality: controller
