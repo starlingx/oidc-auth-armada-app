@@ -29,6 +29,7 @@ Patch02: 0002-add-image-pull-secrets.patch
 Patch03: 0003-Add-affinity-support.patch
 Patch04: 0004-Automatically-roll-deployments.patch
 Patch05: 0005-Update-Dex-chart-for-Helm-v3.patch
+Patch06: 0006-Create-new-config-value-extraStaticClients.patch
 
 BuildArch: noarch
 
@@ -45,6 +46,7 @@ StarlingX OIDC auth Helm charts
 %patch03 -p1
 %patch04 -p1
 %patch05 -p1
+%patch06 -p1
 
 %build
 # This chart does not require chartmuseum server since
