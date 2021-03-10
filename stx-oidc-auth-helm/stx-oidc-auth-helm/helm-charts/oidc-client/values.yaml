@@ -12,7 +12,7 @@ replicas: 1
 
 image:
   repository: docker.io/starlingx/stx-oidc-client
-  tag: stx.4.0-v1.0.2
+  tag: stx.5.0-v1.0.3
   pullPolicy: IfNotPresent
 
 nameOverride: ""
@@ -38,6 +38,20 @@ ingress:
     - host: chart-example.local
       paths: []
   tls: []
+
+livenessProbe:
+  initialDelaySeconds: 1
+  failureThreshold: 1
+  httpPath: "/healthz"
+  periodSeconds: 10
+  timeoutSeconds: 1
+
+readinessProbe:
+  initialDelaySeconds: 1
+  failureThreshold: 1
+  httpPath: "/healthz"
+  periodSeconds: 10
+  timeoutSeconds: 1
 
 resources: {}
 

@@ -1,7 +1,7 @@
 FROM golang:latest
 WORKDIR /app
 ADD . /app/
-RUN go get -d -v ./...
+RUN go mod download
 RUN go build -o stx-oidc-client .
 
 EXPOSE 5555

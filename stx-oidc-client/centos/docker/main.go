@@ -177,6 +177,10 @@ func start_app(config Config) {
 
     http.HandleFunc("/", config.a.handleLogin)
     http.HandleFunc(u.Path, config.a.handleCallback)
+    http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(200)
+        w.Write([]byte("ok"))
+    })
 
     switch listenURL.Scheme {
     case "http":
