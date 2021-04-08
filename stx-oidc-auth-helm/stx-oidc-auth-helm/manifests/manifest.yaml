@@ -21,8 +21,8 @@ data:
           labels:
             app: dex
   values:
-    image: "docker.io/starlingx/dex"
-    imageTag: "stx.4.0-v2.14.0-1"
+    image: docker.io/starlingx/dex
+    imageTag: stx.4.0-v2.14.0-1
     config:
       enablePasswordDB: false
       web:
