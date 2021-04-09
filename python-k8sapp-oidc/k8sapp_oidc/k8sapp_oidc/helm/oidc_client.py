@@ -36,7 +36,7 @@ class OidcClientHelm(DexBaseHelm):
                 'service': {
                     'nodePort': self.OIDC_CLIENT_NODE_PORT
                 },
-                'replicas': self._num_provisioned_controllers(),
+                'replicas': self._num_replicas_for_platform_app(),
             }
         }
 

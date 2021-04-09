@@ -56,7 +56,7 @@ class Dex(DexBaseHelm):
                     'staticClients': self._get_static_clients(),
                 },
                 'ports': ports,
-                'replicas': self._num_provisioned_controllers(),
+                'replicas': self._num_replicas_for_platform_app(),
             }
         }
 
