@@ -25,6 +25,9 @@ spec:
     metadata:
       labels:
         app: stx-oidc-client
+      annotations: {
+        configchecksum: {{ toYaml .Values.config | sha256sum | trunc 63 }}
+        }
     spec:
       imagePullSecrets:
         - name: default-registry-key
