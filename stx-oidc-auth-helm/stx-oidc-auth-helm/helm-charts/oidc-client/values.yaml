@@ -10,6 +10,8 @@
 
 replicas: 1
 
+tlsName: local-dex.tls
+
 image:
   repository: docker.io/starlingx/stx-oidc-client
   tag: stx.5.0-v1.0.3
