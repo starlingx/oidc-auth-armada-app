@@ -86,7 +86,7 @@ spec:
             secretName: dex-client-secret
         - name: https-tls
           secret:
-            secretName: local-dex.tls
+            secretName: {{ .Values.tlsName }}
         - name: config
           configMap:
             name: stx-oidc-client
