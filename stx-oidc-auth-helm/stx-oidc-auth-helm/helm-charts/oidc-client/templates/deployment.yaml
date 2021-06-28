@@ -83,7 +83,7 @@ spec:
       volumes:
         - name: dex-client-secret-volume
           secret:
-            secretName: dex-client-secret
+            secretName: {{ .Values.config.issuer_root_ca_secret }}
         - name: https-tls
           secret:
             secretName: {{ .Values.tlsName }}

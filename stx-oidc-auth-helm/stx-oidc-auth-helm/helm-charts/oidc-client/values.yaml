@@ -30,6 +30,7 @@ config:
   client_secret: St8rlingX
   issuer: https://10.10.10.3:30556/dex
   issuer_root_ca: /home/dex-ca.pem
+  issuer_root_ca_secret: dex-client-secret
   listen: https://0.0.0.0:5555
   redirect_uri: https://10.10.10.3:30555/callback
 
