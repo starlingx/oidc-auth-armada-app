@@ -111,6 +111,45 @@ data:
     reference: master
   dependencies: []
 ---
+schema: armada/Chart/v1
+metadata:
+  schema: metadata/Document/v1
+  name: kube-system-secret-observer
+data:
+  chart_name: secret-observer
+  release: auth-secret-observer
+  namespace: kube-system
+  values:
+    namespace: "kube-system"
+    observedSecrets:
+      - secretName: "dex-client-secret"
+        filename: "dex-ca.pem"
+        deploymentToRestart: "stx-oidc-client"
+      - secretName: "local-dex.tls"
+        filename: "tls.crt"
+        deploymentToRestart: "stx-oidc-client"
+      - secretName: "local-dex.tls"
+        filename: "tls.crt"
+        deploymentToRestart: "oidc-dex"
+  source:
+    location: http://172.17.0.1:8080/helm_charts/stx-platform/secret-observer-0.1.0.tgz
+    subpath: secret-observer
+    type: tar
+    reference: master
+  upgrade:
+    no_hooks: false
+    pre:
+      delete:
+      - labels:
+          release_group: kube-system-secret-observer
+        type: job
+  wait:
+    labels:
+      release_group: kube-system-secret-observer
+    resources: []
+    timeout: 1800
+  dependencies: []
+---
 schema: armada/ChartGroup/v1
 metadata:
   schema: metadata/Document/v1
@@ -121,6 +160,7 @@ data:
   chart_group:
   - kube-system-dex
   - kube-system-oidc-client
+  - kube-system-secret-observer
 ---
 schema: armada/Manifest/v1
 metadata:

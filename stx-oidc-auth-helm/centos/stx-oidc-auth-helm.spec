@@ -39,6 +39,7 @@ The StarlingX K8S application for OIDC authorization
 # Make the charts. These produce a tgz file
 cd helm-charts
 make oidc-client
+make secret-observer
 cd -
 
 # Create a chart tarball compliant with sysinv kube-app.py

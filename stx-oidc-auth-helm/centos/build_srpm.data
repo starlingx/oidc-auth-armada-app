@@ -4,3 +4,7 @@ SRC_DIR="stx-oidc-auth-helm"
 # as the plugin version
 TIS_BASE_SRCREV=860834c14ba54eb047ef02bde7a1f2407ce700ad
 TIS_PATCH_VER=GITREVCOUNT
+
+COPY_LIST_TO_TAR="\
+    $STX_BASE/helm-charts/secret-observer/secret-observer/helm-charts \
+"
