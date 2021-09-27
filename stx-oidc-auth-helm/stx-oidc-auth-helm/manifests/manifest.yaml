@@ -45,6 +45,10 @@ data:
           serverTlsName: local-dex.tls
           clientTlsName: local-dex.tls
           caName: local-dex.tls
+    tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Exists"
+      effect: "NoSchedule"
     affinity:
       podAntiAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
@@ -94,6 +98,10 @@ data:
     service:
       type: NodePort
       port: 5555
+    tolerations:
+    - key: "node-role.kubernetes.io/master"
+      operator: "Exists"
+      effect: "NoSchedule"
     affinity:
       podAntiAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
