@@ -4,7 +4,6 @@
       jobs:
         - openstack-tox-linters
         - k8sapp-oidc-tox-py27
-        - k8sapp-oidc-tox-py36
         - k8sapp-oidc-tox-py39
         - k8sapp-oidc-tox-flake8
         - k8sapp-oidc-tox-pylint
@@ -13,7 +12,6 @@
       jobs:
         - openstack-tox-linters
         - k8sapp-oidc-tox-py27
-        - k8sapp-oidc-tox-py36
         - k8sapp-oidc-tox-py39
         - k8sapp-oidc-tox-flake8
         - k8sapp-oidc-tox-pylint
@@ -37,23 +35,6 @@
       - python-k8sapp-oidc/*
     vars:
       tox_envlist: py27
-      tox_extra_args: -c python-k8sapp-oidc/k8sapp_oidc/tox.ini
-
-- job:
-    name: k8sapp-oidc-tox-py36
-    parent: tox
-    description: |
-      Run py36 test for k8sapp_oidc
-    nodeset: ubuntu-bionic
-    required-projects:
-      - starlingx/config
-      - starlingx/fault
-      - starlingx/update
-      - starlingx/utilities
-    files:
-      - python-k8sapp-oidc/*
-    vars:
-      tox_envlist: py36
       tox_extra_args: -c python-k8sapp-oidc/k8sapp_oidc/tox.ini
 
 - job:
