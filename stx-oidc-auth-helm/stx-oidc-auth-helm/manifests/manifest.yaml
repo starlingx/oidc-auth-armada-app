@@ -139,6 +139,10 @@ data:
       - secretName: "local-dex.tls"
         filename: "tls.crt"
         deploymentToRestart: "oidc-dex"
+    tolerations:
+      - key: "node-role.kubernetes.io/master"
+        operator: "Exists"
+        effect: "NoSchedule"
   source:
     location: http://172.17.0.1:8080/helm_charts/stx-platform/secret-observer-0.1.0.tgz
     subpath: secret-observer
