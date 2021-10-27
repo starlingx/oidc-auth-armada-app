@@ -23,6 +23,11 @@ data:
   values:
     image: docker.io/starlingx/dex
     imageTag: stx.4.0-v2.14.0-1
+    env:
+      - name: KUBERNETES_POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
     config:
       enablePasswordDB: false
       web:
