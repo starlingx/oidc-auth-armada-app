@@ -1,0 +1,22 @@
+#!/usr/bin/make -f
+# export DH_VERBOSE = 1
+
+export APP_NAME=oidc-auth-apps
+export PBR_VERSION=1.0.0
+export PYBUILD_NAME=k8sapp_oidc
+export ROOT=debian/tmp
+
+%:
+	dh $@ --with=python3 --buildsystem=pybuild
+
+override_dh_auto_install:
+	python3 setup.py install --install-layout=deb --root $(ROOT)
+	python3 setup.py bdist_wheel \
+		--universal \
+		-d $(ROOT)/plugins/$(APP_NAME)
+
+ifeq (,$(findstring nocheck, $(DEB_BUILD_OPTIONS)))
+override_dh_auto_test:
+	# (tbogue) FIXME
+	PYTHONDIR=$(CURDIR) stestr run || true
+endif

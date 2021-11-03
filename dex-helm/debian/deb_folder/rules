@@ -1,0 +1,30 @@
+#!/usr/bin/make -f
+# export DH_VERBOSE = 1
+
+export ROOT = debian/tmp
+export HELM_FOLDER = $(ROOT)/usr/lib/helm
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	# Move the source files from the extracted root directory to build root.
+	mv helm-charts/* .
+	# Apply the openstack-helm patches.
+	patch --no-backup-if-mismatch --fuzz=0 -p1 < 0001-Update-Dex-chart-for-Kubernetes-API-1.16.patch
+	patch --no-backup-if-mismatch --fuzz=0 -p1 < 0002-add-image-pull-secrets.patch
+	patch --no-backup-if-mismatch --fuzz=0 -p1 < 0003-Add-affinity-support.patch
+	patch --no-backup-if-mismatch --fuzz=0 -p1 < 0004-Automatically-roll-deployments.patch
+	patch --no-backup-if-mismatch --fuzz=0 -p1 < 0005-Update-Dex-chart-for-Helm-v3.patch
+	patch --no-backup-if-mismatch --fuzz=0 -p1 < 0006-Create-new-config-value-extraStaticClients.patch
+	patch --no-backup-if-mismatch --fuzz=0 -p1 < 0007-Add-tolerance-in-dex-helm-chart.patch
+	# Create the chart TGZ files.
+	cp Makefile stable
+	cd stable && make dex
+
+override_dh_auto_install:
+	# Install the app tar file.
+	install -d -m 755 $(HELM_FOLDER)
+	install -p -D -m 755 stable/*.tgz $(HELM_FOLDER)
+
+override_dh_auto_test:

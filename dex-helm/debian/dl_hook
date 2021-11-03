@@ -1,0 +1,25 @@
+#!/bin/bash
+set -x
+
+PKG_BUILD_NAME=$1
+PKG_BUILD_ROOT=$(realpath `pwd`/${PKG_BUILD_NAME})
+PKG_DIR="dex-helm"
+STX_BASE=$(realpath ${MY_REPO}/stx)
+SRC=$(realpath ${STX_BASE}/oidc-auth-armada-app/${PKG_DIR})
+
+mkdir -p ${PKG_BUILD_ROOT}
+pushd ${PKG_BUILD_ROOT}
+
+# Local mirror workaround until CGCS_BASE mirror is supported.
+STX_MIRROR=$(realpath "/import/mirrors/starlingx")
+
+# Download dex helm chart source package.
+DEX_PKG="helm-charts-92b6289ae93816717a8453cfe62bad51cbdb8ad0.tar.gz"
+DEX_SRC_PATH=$(realpath ${STX_MIRROR}/downloads/${DEX_PKG})
+cp ${DEX_SRC_PATH} ${PKG_BUILD_ROOT}
+
+# Extract the dex helm chart tar file.
+tar xfzvv ${DEX_PKG}
+
+# Copy source files to the build directory.
+cp -pr ${SRC}/files/* ${PKG_BUILD_ROOT}

@@ -1,0 +1,15 @@
+Source: dex-helm
+Section: libs
+Priority: optional
+Maintainer: StarlingX Developers <starlingx-discuss@lists.starlingx.io>
+Build-Depends: debhelper-compat (= 13),
+ helm
+Standards-Version: 4.5.1
+Homepage: https://www.starlingx.io
+
+Package: dex-helm
+Section: libs
+Architecture: any
+Depends: ${misc:Depends}
+Description: StarlingX Dex Helm Charts
+ This package contains Dex helm charts for the OIDC auth application.

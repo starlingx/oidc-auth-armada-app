@@ -1,0 +1,32 @@
+Source: python3-oidcauthtools
+Section: libs
+Priority: optional
+Maintainer: StarlingX Developers <starlingx-discuss@lists.starlingx.io>
+Build-Depends: debhelper-compat (= 13),
+ dh-python,
+ python3-all,
+ python3-pbr (>= 2.0.0),
+ python3-setuptools,
+ python3-wheel
+Standards-Version: 4.5.1
+Homepage: https://www.starlingx.io
+
+Package: python3-oidcauthtools
+Section: libs
+Architecture: any
+Depends: ${misc:Depends}, ${python3:Depends},
+ python3-html5lib,
+ python3-mechanize,
+ python3-pbr (>= 2.0.0),
+ python3-webencodings
+Description: OIDC Authentication Tools
+ This package contains OIDC authentication tools to obtain a token
+ from DEX and setup kubernetes credentials for a user.
+
+Package: python3-oidcauthtools-wheels
+Section: libs
+Architecture: any
+Depends: ${misc:Depends}, ${python3:Depends}, python3-wheel
+Description: OIDC Authentication Tools Wheels
+ This package contains python wheels for the OIDC authentication
+ tools.

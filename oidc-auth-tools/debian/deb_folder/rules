@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+# export DH_VERBOSE = 1
+
+export PBR_VERSION=1.0.0
+export ROOT=$(CURDIR)/debian/tmp
+
+%:
+	dh $@ --with=python3 --buildsystem=pybuild
+
+override_dh_auto_install:
+	python3 setup.py install \
+		--install-layout=deb \
+		--root $(ROOT) \
+		--prefix=/usr \
+		--install-data=/usr/share \
+		--single-version-externally-managed
+	python3 setup.py bdist_wheel \
+		--universal \
+		-d $(ROOT)/wheels
