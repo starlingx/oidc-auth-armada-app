@@ -1,7 +1,15 @@
 ---
 debname: dex-helm
 debver: 1.0-1
-dl_hook: dl_hook
+dl_path:
+  name: helm-charts-92b6289ae93816717a8453cfe62bad51cbdb8ad0.tar.gz
+  url: https://github.com/helm/charts/archive/92b6289ae93816717a8453cfe62bad51cbdb8ad0.tar.gz
+  md5sum: d32b2ad945a10441d8e1b014bddd8cb8
+src_files:
+  - files/index.yaml
+  - files/Makefile
+  - files/repositories.yaml
+  - files/metadata.yaml
 revision:
   dist: $STX_DIST
   PKG_GITREVCOUNT: true
