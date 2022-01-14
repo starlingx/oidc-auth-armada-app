@@ -1,7 +1,9 @@
 ---
 debname: stx-oidc-auth-helm
 debver: 1.0-1
-dl_hook: dl_hook
+src_path: stx-oidc-auth-helm
+src_files:
+  - ${MY_REPO}/stx/helm-charts/secret-observer/secret-observer/helm-charts
 revision:
   dist: $STX_DIST
   PKG_GITREVCOUNT: true
