@@ -1,0 +1,50 @@
+From f611d30a61220a933266f390646ea04c5c97966b Mon Sep 17 00:00:00 2001
+From: Michel Thebeau <Michel.Thebeau@windriver.com>
+Date: Mon, 14 Mar 2022 13:50:15 -0400
+Subject: [PATCH] fix deployment nodePorts for helmv3
+
+Helmv3 reports "Deployment.spec.template.spec.containers[0].ports[0]):
+unknown field "nodePort" in io.k8s.api.core.v1.ContainerPort"
+
+Signed-off-by: Michel Thebeau <Michel.Thebeau@windriver.com>
+---
+ stable/dex/templates/deployment.yaml | 6 ++++++
+ stable/dex/values.yaml               | 7 +++++++
+ 2 files changed, 13 insertions(+)
+
+diff --git a/stable/dex/templates/deployment.yaml b/stable/dex/templates/deployment.yaml
+index 975a7ea..8edddcf 100644
+--- a/stable/dex/templates/deployment.yaml
++++ b/stable/dex/templates/deployment.yaml
+@@ -50,7 +50,13 @@ spec:
+         resources:
+ {{ toYaml .Values.resources | indent 10 }}
+         ports:
++{{- if eq false $.Values.helmv3Compatible }}
+ {{ toYaml .Values.ports | indent 10 }}
++{{- else }}
++          - name: http
++            containerPort: {{ .Values.nodePort }}
++            protocol: TCP
++{{- end }}
+         env:
+ {{ toYaml .Values.env | indent 10 }}
+         volumeMounts:
+diff --git a/stable/dex/values.yaml b/stable/dex/values.yaml
+index 8047582..9586a97 100644
+--- a/stable/dex/values.yaml
++++ b/stable/dex/values.yaml
+@@ -145,3 +145,10 @@ config:
+ #    hash: "$2a$10$2b2cU8CPhOTaGrs1HRQuAueS7JTT5ZHsHSzYiFPm1leZck7Mc8T4W"
+ #    username: "admin"
+ #    userID: "08a8684b-db88-4b73-90a9-3cd1661f5466"
++
++# Set as true to fix compatibility issues with Helmv3
++helmv3Compatible: false
++
++# Also for helmv3 compatibility, should be the same as
++# .Values.ports.[index of name='http'].nodePort
++nodePort: 32080
+-- 
+2.29.2
+

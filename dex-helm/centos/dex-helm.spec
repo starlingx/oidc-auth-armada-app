@@ -31,6 +31,7 @@ Patch04: 0004-Automatically-roll-deployments.patch
 Patch05: 0005-Update-Dex-chart-for-Helm-v3.patch
 Patch06: 0006-Create-new-config-value-extraStaticClients.patch
 Patch07: 0007-Add-tolerance-in-dex-helm-chart.patch
+Patch08: 0008-fix-deployment-nodePorts-for-helmv3.patch
 
 BuildArch: noarch
 
@@ -49,6 +50,7 @@ StarlingX OIDC auth Helm charts
 %patch05 -p1
 %patch06 -p1
 %patch07 -p1
+%patch08 -p1
 
 %build
 # This chart does not require chartmuseum server since

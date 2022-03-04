@@ -5,6 +5,8 @@ SRC_DIR="stx-oidc-auth-helm"
 TIS_BASE_SRCREV=860834c14ba54eb047ef02bde7a1f2407ce700ad
 TIS_PATCH_VER=GITREVCOUNT
 
+COPY_LIST="$PKG_BASE/$SRC_DIR/files/*"
+
 COPY_LIST_TO_TAR="\
     $STX_BASE/helm-charts/secret-observer/secret-observer/helm-charts \
 "

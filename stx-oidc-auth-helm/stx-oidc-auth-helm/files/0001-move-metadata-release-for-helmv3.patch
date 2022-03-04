@@ -1,0 +1,33 @@
+From 4239b96129a8a9e18313d510676fa3d47c2293ee Mon Sep 17 00:00:00 2001
+From: Michel Thebeau <Michel.Thebeau@windriver.com>
+Date: Thu, 10 Mar 2022 15:27:49 -0500
+Subject: [PATCH] move metadata release for helmv3
+
+The Fluxcd helm chart will fail with "unknown field "release" in
+io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta".  Move the field under
+labels.
+
+Signed-off-by: Michel Thebeau <Michel.Thebeau@windriver.com>
+---
+ .../helm-charts/secret-observer/templates/serviceaccount.yaml  | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/helm-charts/secret-observer/templates/serviceaccount.yaml b/helm-charts/secret-observer/templates/serviceaccount.yaml
+index 322bd73..5cf33d5 100644
+--- a/helm-charts/secret-observer/templates/serviceaccount.yaml
++++ b/helm-charts/secret-observer/templates/serviceaccount.yaml
+@@ -10,9 +10,10 @@
+ apiVersion: v1
+ kind: ServiceAccount
+ metadata:
+-  release: "{{ .Release.Name }}"
+   name: secret-observer
+   namespace: {{ .Values.namespace }}
++  labels:
++    release: "{{ .Release.Name }}"
+ imagePullSecrets:
+   - name: default-registry-key
+ {{- end -}}
+-- 
+2.29.2
+

@@ -63,3 +63,5 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+helmv3Compatible: false

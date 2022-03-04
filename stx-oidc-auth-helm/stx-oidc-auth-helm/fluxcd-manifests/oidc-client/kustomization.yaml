@@ -1,0 +1,18 @@
+#
+# Copyright (c) 2022 Wind River Systems, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+namespace: kube-system
+resources:
+  - helmrelease.yaml
+secretGenerator:
+  - name: oidc-client-static-overrides
+    files:
+      - oidc-client-static-overrides.yaml
+  - name: oidc-client-system-overrides
+    files:
+      - oidc-client-system-overrides.yaml
+generatorOptions:
+  disableNameSuffixHash: true

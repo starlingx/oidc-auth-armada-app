@@ -1,0 +1,31 @@
+#
+# Copyright (c) 2022 Wind River Systems, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+config:
+  issuer_root_ca: /home/dex-ca.pem
+  listen: https://0.0.0.0:5555
+  tlsCert: /etc/dex/tls/https/server/tls.crt
+  tlsKey: /etc/dex/tls/https/server/tls.key
+nodeSelector:
+  node-role.kubernetes.io/master: ""
+service:
+  type: NodePort
+  port: 5555
+tolerations:
+- key: "node-role.kubernetes.io/master"
+  operator: "Exists"
+  effect: "NoSchedule"
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - stx-oidc-client
+      topologyKey: kubernetes.io/hostname
+helmv3Compatible: true

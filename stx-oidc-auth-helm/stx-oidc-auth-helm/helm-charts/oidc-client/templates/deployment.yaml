@@ -46,19 +46,34 @@ spec:
               path: {{ .Values.livenessProbe.httpPath }}
               port: 5555
               scheme: HTTPS
+{{- if eq false $.Values.helmv3Compatible }}
               initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
               periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
               timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
               failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+{{- else }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+{{- end }}
+
           readinessProbe:
             httpGet:
               path: {{ .Values.readinessProbe.httpPath }}
               port: 5555
               scheme: HTTPS
+{{- if eq false $.Values.helmv3Compatible }}
               initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
               periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
               timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
               failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+{{- else }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+{{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:

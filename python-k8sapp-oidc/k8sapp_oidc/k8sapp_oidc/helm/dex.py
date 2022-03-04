@@ -57,6 +57,7 @@ class Dex(DexBaseHelm):
                 },
                 'ports': ports,
                 'replicas': self._num_replicas_for_platform_app(),
+                'nodePort': self.DEX_NODE_PORT,
             }
         }
 
