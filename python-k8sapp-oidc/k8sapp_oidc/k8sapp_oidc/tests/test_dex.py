@@ -50,7 +50,7 @@ class DexIPv4ControllerHostTestCase(DexTestCase,
 
         self.assertOverridesParameters(overrides, {
             # 1 replica for 1 controller
-            'replicas': 1
+            'replicaCount': 1
         })
 
 
@@ -65,5 +65,5 @@ class DexIPv6AIODuplexSystemTestCase(DexTestCase,
 
         self.assertOverridesParameters(overrides, {
             # 2 replicas for 2 controllers
-            'replicas': 2
+            'replicaCount': 2
         })

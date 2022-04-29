@@ -50,7 +50,7 @@ class OidcClientIPv4ControllerHostTestCase(OidcClientTestCase,
 
         self.assertOverridesParameters(overrides, {
             # Only one replica for a single controller
-            'replicas': 1
+            'replicaCount': 1
         })
 
 
@@ -69,5 +69,5 @@ class OidcClientIPv4AIODuplexSystemTestCase(OidcClientTestCase,
 
         self.assertOverridesParameters(overrides, {
             # Expect two replicas because there are two controllers
-            'replicas': 2
+            'replicaCount': 2
         })

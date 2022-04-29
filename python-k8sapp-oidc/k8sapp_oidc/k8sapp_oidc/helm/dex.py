@@ -16,8 +16,6 @@ class Dex(DexBaseHelm):
 
     CHART = app_constants.HELM_CHART_DEX
 
-    SERVICE_NAME = 'dex'
-
     def get_namespaces(self):
         return self.SUPPORTED_NAMESPACES
 
@@ -39,14 +37,19 @@ class Dex(DexBaseHelm):
 
     def get_overrides(self, namespace=None):
 
-        ports = []
-        dex_port = {
-            'name': 'http',
-            'containerPort': 5556,
-            'protocol': 'TCP',
-            'nodePort': self.DEX_NODE_PORT,
+        env = {
+            'name': 'KUBERNETES_POD_NAMESPACE',
+            'value': common.HELM_NS_KUBE_SYSTEM
         }
-        ports.append(dex_port)
+
+        service = {
+            'type': 'NodePort',
+            'ports': {
+                'https': {
+                    'nodePort': self.DEX_NODE_PORT
+                }
+            }
+        }
 
         overrides = {
             common.HELM_NS_KUBE_SYSTEM: {
@@ -55,9 +58,9 @@ class Dex(DexBaseHelm):
                                                      self.DEX_NODE_PORT),
                     'staticClients': self._get_static_clients(),
                 },
-                'ports': ports,
-                'replicas': self._num_replicas_for_platform_app(),
-                'nodePort': self.DEX_NODE_PORT,
+                'replicaCount': self._num_replicas_for_platform_app(),
+                'env': env,
+                'service': service
             }
         }
 

@@ -3,7 +3,6 @@ Section: libs
 Priority: optional
 Maintainer: StarlingX Developers <starlingx-discuss@lists.starlingx.io>
 Build-Depends: debhelper-compat (= 13),
- dex-helm,
  helm,
  python3-k8sapp-oidc,
  python3-k8sapp-oidc-wheels
@@ -13,7 +12,7 @@ Homepage: https://www.starlingx.io
 Package: stx-oidc-auth-helm
 Section: libs
 Architecture: any
-Depends: ${misc:Depends}, dex-helm
+Depends: ${misc:Depends}
 Description: StarlingX OIDC Authorization Helm Charts
- This package contains Armada helm charts for the OIDC authorization
+ This package contains helm charts for the OIDC authorization
  application.

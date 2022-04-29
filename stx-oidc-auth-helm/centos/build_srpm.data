@@ -8,5 +8,6 @@ TIS_PATCH_VER=GITREVCOUNT
 COPY_LIST="$PKG_BASE/$SRC_DIR/files/*"
 
 COPY_LIST_TO_TAR="\
+    $STX_BASE/downloads/dex-0.8.2.tgz
     $STX_BASE/helm-charts/secret-observer/secret-observer/helm-charts \
 "

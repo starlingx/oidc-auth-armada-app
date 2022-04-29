@@ -1,7 +1,0 @@
-0001-Update-Dex-chart-for-Kubernetes-API-1.16.patch
-0002-add-image-pull-secrets.patch
-0003-Add-affinity-support.patch
-0004-Automatically-roll-deployments.patch
-0005-Update-Dex-chart-for-Helm-v3.patch
-0006-Create-new-config-value-extraStaticClients.patch
-0007-Add-tolerance-in-dex-helm-chart.patch

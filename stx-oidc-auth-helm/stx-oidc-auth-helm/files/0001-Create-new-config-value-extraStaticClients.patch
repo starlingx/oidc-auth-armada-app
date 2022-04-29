@@ -1,0 +1,127 @@
+From 000cf954b437fc44e6d671a0b1319649459a1c90 Mon Sep 17 00:00:00 2001
+From: Michel Thebeau <Michel.Thebeau@windriver.com>
+Date: Tue, 10 May 2022 09:14:20 -0400
+Subject: [PATCH] Create new config value extraStaticClients
+
+Create a new config value called extraStaticClients. This new value if
+present will be added to staticClients. This will allow a user to add
+new static clients without overriding the current staticClients config
+which is a array.  Helm does not currently merge arrays.
+
+The original patch was authored by Kristine Bujold for dex version
+2.14.0, helm chart version 0.8.0 (https://github.com/helm/charts).  This
+version updates the set of config options, and assumes only the issuer
+is mandatory (refer to if statements).  The new dex version (2.31.1)
+would have passed the entire config dictionary as provided in
+values.yaml, whereas the old dex had composed the config dictionary from
+values.yaml.
+
+Signed-off-by: Michel Thebeau <Michel.Thebeau@windriver.com>
+---
+ dex/templates/secret.yaml | 67 +++++++++++++++++++++++++++++++++++++--
+ dex/values.yaml           | 13 ++++++++
+ 2 files changed, 78 insertions(+), 2 deletions(-)
+
+diff --git a/dex/templates/secret.yaml b/dex/templates/secret.yaml
+index 27d3954..24f694a 100644
+--- a/dex/templates/secret.yaml
++++ b/dex/templates/secret.yaml
+@@ -6,6 +6,69 @@ metadata:
+   labels:
+     {{- include "dex.labels" . | nindent 4 }}
+ type: Opaque
+-data:
+-  config.yaml: {{ .Values.config | toYaml | b64enc | quote }}
++stringData:
++  config.yaml: |-
++    {{- with .Values.config }}
++    issuer: {{ .issuer }}
++    {{- if .storage }}
++    storage:
++{{ toYaml .storage | indent 6 }}
++    {{- end }}
++    {{- if .logger }}
++    logger:
++{{ toYaml .logger | indent 6 }}
++    {{- end }}
++    {{- if .web }}
++    web:
++{{ toYaml .web | indent 6 }}
++    {{- end }}
++    {{- if .grpc }}
++    grpc:
++{{ toYaml .grpc | indent 6 }}
++    {{- end }}
++    {{- if .connectors }}
++    connectors:
++{{ toYaml .connectors | indent 4 }}
++    {{- end }}
++    {{- if .oauth2 }}
++    oauth2:
++{{ toYaml .oauth2 | indent 6 }}
++    {{- end }}
++    {{- if or .staticClients .extraStaticClients }}
++    staticClients:
++    {{- if .staticClients }}
++{{ toYaml .staticClients |  trimSuffix "\n" | indent 4 }}
++    {{- end }}
++    {{- if .extraStaticClients }}
++{{- range $key, $val := .extraStaticClients }}
++    - id: {{ $key }}
++      name: {{ $val.name }}
++      secret: {{ $val.secret }}
++      redirectURIs:
++    {{- range $uris := $val.redirectURIs }}
++      - {{ $uris }}
++    {{- end }}
++{{- end -}}
++    {{- end }}
++    {{- end }}
++    {{- if .enablePasswordDB }}
++    enablePasswordDB: {{ .enablePasswordDB }}
++    {{- end }}
++    {{- if .staticPasswords }}
++    staticPasswords:
++{{ toYaml .staticPasswords | indent 4 }}
++    {{- end }}
++    {{- if .expiry }}
++    expiry:
++{{ toYaml .expiry | indent 6 }}
++    {{- end }}
++    {{- if .frontend }}
++    frontend:
++{{ toYaml .frontend | indent 6 }}
++    {{- end }}
++    {{- if .telemetry }}
++    telemetry:
++{{ toYaml .telemetry | indent 6 }}
++    {{- end }}
++    {{- end }}
+ {{- end }}
+diff --git a/dex/values.yaml b/dex/values.yaml
+index f879cdf..e55d479 100644
+--- a/dex/values.yaml
++++ b/dex/values.yaml
+@@ -51,6 +51,19 @@ configSecret:
+ # See the [official documentation](https://dexidp.io/docs/).
+ config: {}
+ 
++# Addendum for config:
++# -- extraStaticClients
++# if config.extraStaticClients is present it will be added to
++# config.staticClients.  This option allows a second procedure to add
++# clients without overriding an existing user override.
++
++#   extraStaticClients:
++#     example-app:
++#       redirectURIs:
++#       - 'http://192.168.42.219:31850/oauth2/callback'
++#       name: 'Example App'
++#       secret: ZXhhbXBsZS1hcHAtc2VjcmV0
++
+ # -- Additional storage [volumes](https://kubernetes.io/docs/concepts/storage/volumes/).
+ # See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes-1) for details.
+ volumes: []
+-- 
+2.25.1
+
