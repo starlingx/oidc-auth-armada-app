@@ -1,2 +1,1 @@
 stx-oidc-client
-dex
