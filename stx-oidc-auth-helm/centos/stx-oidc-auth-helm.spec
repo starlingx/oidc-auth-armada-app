@@ -5,6 +5,9 @@
 # Install location
 %global app_folder /usr/local/share/applications/helm
 
+# backup location of dex overrides
+%global override_backup /opt/oidc-auth-apps
+
 # Build variables
 %global helm_folder /usr/lib/helm
 
@@ -100,7 +103,9 @@ rm -fr %{app_staging}
 %install
 install -d -m 755 %{buildroot}/%{app_folder}
 install -p -D -m 755 %app_path %{buildroot}/%{app_folder}
+install -d -m 750 %{buildroot}/%{override_backup}
 
 %files
 %defattr(-,root,root,-)
 %{app_folder}/%{app_tarball}
+%dir %attr(750, postgres, postgres) %{override_backup}
