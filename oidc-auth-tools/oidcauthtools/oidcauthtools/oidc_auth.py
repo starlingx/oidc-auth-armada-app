@@ -9,6 +9,7 @@ import getopt, sys
 import getpass
 from argparse import ArgumentParser
 import mechanize
+import six
 import ssl
 
 def main():
@@ -114,6 +115,11 @@ def main():
         print("------------------")
 
     stringResponse = dexLoginGrantAccessResponse.read()
+    # stringResponse is bytes type. In python3 bytes and str are different.
+    # Convert it to str so the following string operations will succeed.
+    if six.PY3:
+        stringResponse = stringResponse.decode()
+
     if verbose:
         print(stringResponse)
 
