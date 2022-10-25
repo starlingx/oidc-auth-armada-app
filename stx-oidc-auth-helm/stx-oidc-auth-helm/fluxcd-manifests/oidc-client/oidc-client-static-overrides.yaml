@@ -10,12 +10,15 @@ config:
   tlsCert: /etc/dex/tls/https/server/tls.crt
   tlsKey: /etc/dex/tls/https/server/tls.key
 nodeSelector:
-  node-role.kubernetes.io/master: ""
+  node-role.kubernetes.io/control-plane: ""
 service:
   type: NodePort
   port: 5555
 tolerations:
 - key: "node-role.kubernetes.io/master"
+  operator: "Exists"
+  effect: "NoSchedule"
+- key: "node-role.kubernetes.io/control-plane"
   operator: "Exists"
   effect: "NoSchedule"
 affinity:
