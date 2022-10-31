@@ -1,0 +1,18 @@
+#!/bin/sh
+
+set -e
+
+case "$1" in
+    configure)
+        chown postgres:postgres /var/opt/oidc-auth-apps
+        chmod 750 /var/opt/oidc-auth-apps
+    ;;
+
+    *)
+        true
+    ;;
+esac
+
+#DEBHELPER#
+
+exit 0

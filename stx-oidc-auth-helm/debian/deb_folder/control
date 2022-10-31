@@ -12,7 +12,7 @@ Homepage: https://www.starlingx.io
 Package: stx-oidc-auth-helm
 Section: libs
 Architecture: any
-Depends: ${misc:Depends}
+Depends: ${misc:Depends}, postgresql-common, base-files
 Description: StarlingX OIDC Authorization Helm Charts
  This package contains helm charts for the OIDC authorization
  application.

@@ -3,6 +3,7 @@
 
 export ROOT = debian/tmp
 export APP_FOLDER = $(ROOT)/usr/local/share/applications/helm
+export BACKUP_FOLDER = $(ROOT)/var/opt/oidc-auth-apps
 
 export DEB_VERSION = $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
 export MAJOR = $(shell echo $(DEB_VERSION) | cut -f 1 -d '.')
@@ -55,5 +56,6 @@ override_dh_auto_install:
 	# Install the app tar file.
 	install -d -m 755 $(APP_FOLDER)
 	install -p -D -m 755 $(APP_TARBALL) $(APP_FOLDER)
+	install -d -m 750 $(BACKUP_FOLDER)
 
 override_dh_usrlocal:
