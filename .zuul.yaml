@@ -61,6 +61,7 @@
     parent: tox
     description: |
       Run flake8 test for k8sapp_oidc
+    nodeset: ubuntu-focal
     files:
       - python-k8sapp-oidc/*
     vars:
@@ -89,6 +90,7 @@
     parent: tox
     description: |
       Run bandit test for k8sapp_oidc
+    nodeset: ubuntu-focal
     files:
       - python-k8sapp-oidc/*
     vars:
