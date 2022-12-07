@@ -22,7 +22,7 @@ spec:
   dependsOn:
     - name: dex
       namespace: kube-system
-  interval: 5m
+  interval: 1m
   timeout: 30m
   test:
     enable: false
