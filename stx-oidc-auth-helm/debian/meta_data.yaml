@@ -11,4 +11,6 @@ dl_files:
     md5sum: bfbe56a46cf23c68d27c6a018a565d95
 revision:
   dist: $STX_DIST
-  PKG_GITREVCOUNT: true
+  GITREVCOUNT:
+    SRC_DIR: ${MY_REPO}/stx/oidc-auth-armada-app
+    BASE_SRCREV: 860834c14ba54eb047ef02bde7a1f2407ce700ad
