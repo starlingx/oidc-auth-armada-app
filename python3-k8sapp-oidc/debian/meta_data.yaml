@@ -1,9 +1,0 @@
----
-debname: python3-k8sapp-oidc
-debver: 1.0-1
-src_path: k8sapp_oidc
-revision:
-  dist: $STX_DIST
-  GITREVCOUNT:
-    SRC_DIR: ${MY_REPO}/stx/oidc-auth-armada-app
-    BASE_SRCREV: 860834c14ba54eb047ef02bde7a1f2407ce700ad

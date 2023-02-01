@@ -1,0 +1,2 @@
+SRC_DIR="oidcauthtools"
+TIS_PATCH_VER=PKG_GITREVCOUNT

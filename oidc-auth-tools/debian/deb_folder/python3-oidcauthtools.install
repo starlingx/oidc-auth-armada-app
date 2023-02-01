@@ -1,2 +1,3 @@
 usr/bin/oidc-auth
-usr/lib/python3/dist-packages/oidcauthtools*/*
+usr/lib/python3/dist-packages/oidcauthtools-1.0.0.egg-info/*
+usr/lib/python3/dist-packages/oidcauthtools/*
