@@ -32,11 +32,11 @@
       - starlingx/update
       - starlingx/utilities
     files:
-      - python-k8sapp-oidc/*
+      - python3-k8sapp-oidc/*
     vars:
       tox_envlist: py39
       python_version: 3.9
-      tox_extra_args: -c python-k8sapp-oidc/k8sapp_oidc/tox.ini
+      tox_extra_args: -c python3-k8sapp-oidc/k8sapp_oidc/tox.ini
 
 
 - job:
@@ -46,10 +46,10 @@
       Run flake8 test for k8sapp_oidc
     nodeset: debian-bullseye
     files:
-      - python-k8sapp-oidc/*
+      - python3-k8sapp-oidc/*
     vars:
       tox_envlist: flake8
-      tox_extra_args: -c python-k8sapp-oidc/k8sapp_oidc/tox.ini
+      tox_extra_args: -c python3-k8sapp-oidc/k8sapp_oidc/tox.ini
 
 - job:
     name: k8sapp-oidc-tox-pylint
@@ -63,10 +63,10 @@
       - starlingx/update
       - starlingx/utilities
     files:
-      - python-k8sapp-oidc/*
+      - python3-k8sapp-oidc/*
     vars:
       tox_envlist: pylint
-      tox_extra_args: -c python-k8sapp-oidc/k8sapp_oidc/tox.ini
+      tox_extra_args: -c python3-k8sapp-oidc/k8sapp_oidc/tox.ini
 
 - job:
     name: k8sapp-oidc-tox-bandit
@@ -75,10 +75,10 @@
       Run bandit test for k8sapp_oidc
     nodeset: debian-bullseye
     files:
-      - python-k8sapp-oidc/*
+      - python3-k8sapp-oidc/*
     vars:
       tox_envlist: bandit
-      tox_extra_args: -c python-k8sapp-oidc/k8sapp_oidc/tox.ini
+      tox_extra_args: -c python3-k8sapp-oidc/k8sapp_oidc/tox.ini
 
 - job:
     name: stx-oidc-auth-armada-app-upload-git-mirror

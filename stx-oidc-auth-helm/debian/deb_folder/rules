@@ -45,7 +45,7 @@ override_dh_auto_build:
 	sed -i 's/@HELM_REPO@/$(HELM_REPO)/g' $(STAGING)/metadata.yaml
 	# Copy the plugins: installed in the buildroot
 	mkdir -p $(STAGING)/plugins
-	cp /plugins/$(APP_NAME)/*.whl $(STAGING)/plugins
+	cp /plugins/*.whl $(STAGING)/plugins
 	# Create the app package.
 	cd $(STAGING) && find . -type f ! -name '*.md5' -print0 | xargs -0 md5sum > checksum.md5
 	tar cfz $(APP_TARBALL) -C $(STAGING)/ .
