@@ -5,3 +5,5 @@ src_path: oidcauthtools
 revision:
   dist: $STX_DIST
   PKG_GITREVCOUNT: true
+  SRC_GITREVCOUNT:
+    SRC_BASE_SRCREV: f045d574f30a3fa5cb555fe805a7a16244091c79
