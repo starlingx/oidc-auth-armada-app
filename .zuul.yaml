@@ -5,7 +5,6 @@
     check:
       jobs:
         - openstack-tox-linters
-        - k8sapp-oidc-tox-py27
         - k8sapp-oidc-tox-py39
         - k8sapp-oidc-tox-flake8
         - k8sapp-oidc-tox-pylint
@@ -13,7 +12,6 @@
     gate:
       jobs:
         - openstack-tox-linters
-        - k8sapp-oidc-tox-py27
         - k8sapp-oidc-tox-py39
         - k8sapp-oidc-tox-flake8
         - k8sapp-oidc-tox-pylint
@@ -21,23 +19,6 @@
     post:
       jobs:
         - stx-oidc-auth-armada-app-upload-git-mirror
-
-- job:
-    name: k8sapp-oidc-tox-py27
-    parent: tox
-    description: |
-      Run py27 test for k8sapp_oidc
-    nodeset: ubuntu-xenial
-    required-projects:
-      - starlingx/config
-      - starlingx/fault
-      - starlingx/update
-      - starlingx/utilities
-    files:
-      - python-k8sapp-oidc/*
-    vars:
-      tox_envlist: py27
-      tox_extra_args: -c python-k8sapp-oidc/k8sapp_oidc/tox.ini
 
 - job:
     name: k8sapp-oidc-tox-py39
@@ -63,7 +44,7 @@
     parent: tox
     description: |
       Run flake8 test for k8sapp_oidc
-    nodeset: ubuntu-focal
+    nodeset: debian-bullseye
     files:
       - python-k8sapp-oidc/*
     vars:
@@ -75,7 +56,7 @@
     parent: tox
     description: |
       Run pylint test for k8sapp_oidc
-    nodeset: ubuntu-bionic
+    nodeset: debian-bullseye
     required-projects:
       - starlingx/config
       - starlingx/fault
@@ -92,7 +73,7 @@
     parent: tox
     description: |
       Run bandit test for k8sapp_oidc
-    nodeset: ubuntu-focal
+    nodeset: debian-bullseye
     files:
       - python-k8sapp-oidc/*
     vars:
