@@ -6,11 +6,11 @@ export APP_FOLDER = $(ROOT)/usr/local/share/applications/helm
 export BACKUP_FOLDER = $(ROOT)/var/opt/oidc-auth-apps
 
 export DEB_VERSION = $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
-export MAJOR = $(shell echo $(DEB_VERSION) | cut -f 1 -d '.')
-export MINOR_PATCH = $(shell echo $(DEB_VERSION) | cut -f 2 -d '.')
+export RELEASE = $(shell echo $(DEB_VERSION) | cut -f 1 -d '-')
+export REVISION = $(shell echo $(DEB_VERSION) | cut -f 4 -d '.')
 
 export APP_NAME = oidc-auth-apps
-export APP_VERSION = $(MAJOR).$(MINOR_PATCH)
+export APP_VERSION = $(RELEASE)-$(REVISION)
 export APP_TARBALL = $(APP_NAME)-$(APP_VERSION).tgz
 export HELM_FOLDER = /usr/lib/helm
 export HELM_REPO = stx-platform
