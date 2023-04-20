@@ -15,7 +15,7 @@ export APP_TARBALL = $(APP_NAME)-$(APP_VERSION).tgz
 export HELM_FOLDER = /usr/lib/helm
 export HELM_REPO = stx-platform
 export STAGING = staging
-export DEX_TAR_NAME = dex-0.8.2.tgz
+export DEX_TAR_NAME = dex-0.14.1.tgz
 
 %:
 	dh $@

@@ -1,6 +1,6 @@
-From 000cf954b437fc44e6d671a0b1319649459a1c90 Mon Sep 17 00:00:00 2001
-From: Michel Thebeau <Michel.Thebeau@windriver.com>
-Date: Tue, 10 May 2022 09:14:20 -0400
+From 4361e5ad911d9615e02521ff932f50ba16435f20 Mon Sep 17 00:00:00 2001
+From: Joao Victor Portal <Joao.VictorPortal@windriver.com>
+Date: Mon, 24 Apr 2023 14:49:52 -0300
 Subject: [PATCH] Create new config value extraStaticClients
 
 Create a new config value called extraStaticClients. This new value if
@@ -17,6 +17,7 @@ values.yaml, whereas the old dex had composed the config dictionary from
 values.yaml.
 
 Signed-off-by: Michel Thebeau <Michel.Thebeau@windriver.com>
+Signed-off-by: Joao Victor Portal <Joao.VictorPortal@windriver.com>
 ---
  dex/templates/secret.yaml | 67 +++++++++++++++++++++++++++++++++++++--
  dex/values.yaml           | 13 ++++++++
@@ -99,10 +100,10 @@ index 27d3954..24f694a 100644
 +    {{- end }}
  {{- end }}
 diff --git a/dex/values.yaml b/dex/values.yaml
-index f879cdf..e55d479 100644
+index 756d49e..34ebf1b 100644
 --- a/dex/values.yaml
 +++ b/dex/values.yaml
-@@ -51,6 +51,19 @@ configSecret:
+@@ -55,6 +55,19 @@ configSecret:
  # See the [official documentation](https://dexidp.io/docs/).
  config: {}
  
@@ -123,5 +124,5 @@ index f879cdf..e55d479 100644
  # See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes-1) for details.
  volumes: []
 -- 
-2.25.1
+2.17.1
 

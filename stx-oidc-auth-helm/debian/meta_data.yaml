@@ -5,10 +5,10 @@ src_path: stx-oidc-auth-helm
 src_files:
   - ${MY_REPO}/stx/helm-charts/secret-observer/secret-observer/helm-charts
 dl_files:
-  dex-0.8.2.tgz:
+  dex-0.14.1.tgz:
     topdir: null
-    url: https://github.com/dexidp/helm-charts/releases/download/dex-0.8.2/dex-0.8.2.tgz
-    md5sum: bfbe56a46cf23c68d27c6a018a565d95
+    url: https://github.com/dexidp/helm-charts/releases/download/dex-0.14.1/dex-0.14.1.tgz
+    md5sum: 0477135581527203b695c8733b4c3438
 revision:
   dist: $STX_DIST
   FILES_GITREVCOUNT:
