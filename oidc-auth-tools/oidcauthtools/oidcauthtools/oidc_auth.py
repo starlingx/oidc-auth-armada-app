@@ -1,16 +1,18 @@
+#!/usr/bin/python3
+
 #
 # Copyright (c) 2020 Wind River Systems, Inc.
 #
 # SPDX-License-Identifier: Apache-2.0
 #
-#!/usr/bin/env python
 
-import getopt, sys
-import getpass
 from argparse import ArgumentParser
+import getpass
 import mechanize
 import six
 import ssl
+import sys
+
 
 def main():
 
@@ -43,14 +45,14 @@ def main():
 
     dexClientUrl = "https://" + client + ":30555"
     if verbose:
-        print ("client: " + dexClientUrl)
-        print ("username: " + username)
-        print ("password: " + password)
+        print("client: " + dexClientUrl)
+        print("username: " + username)
+        print("password: " + password)
 
     ssl._create_default_https_context = ssl._create_unverified_context
     br = mechanize.Browser()
     br.set_handle_robots(False)
-    br.addheaders = [("User-agent","Mozilla/5.0")]
+    br.addheaders = [("User-agent", "Mozilla/5.0")]
 
     # Open browser on dexClientUrl
     dexLoginPage = br.open(dexClientUrl)
@@ -140,10 +142,11 @@ def main():
         idToken = node.text
 
     print("Updating kubectl config ...")
-    updateCredsCmd = "kubectl config set-credentials " + username + " --token " + idToken
+    updateCredsCmd = ("kubectl config set-credentials " +
+                      username + " --token " + idToken)
 
     import os
-    result = os.system(updateCredsCmd)
+    os.system(updateCredsCmd)
 
 
 if __name__ == "__main__":
