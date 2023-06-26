@@ -9,9 +9,11 @@
 from argparse import ArgumentParser
 import getpass
 import mechanize
+import re
 import six
 import ssl
 import sys
+import urllib
 
 
 def main():
@@ -55,7 +57,19 @@ def main():
     br.addheaders = [("User-agent", "Mozilla/5.0")]
 
     # Open browser on dexClientUrl
-    dexLoginPage = br.open(dexClientUrl)
+    try:
+        dexLoginPage = br.open(dexClientUrl)
+    except urllib.error.URLError as e:
+        conv_e = str(e.reason)
+        e_code = re.search(r"\d+", conv_e)
+        if (e_code.group()) == "111":
+            print('Check oidc-auth-apps application pod status')
+        elif (e_code.group()) == "113":
+            print('Check command line parameter OIDC client IP address (-c)')
+        else:
+            print('Unexpected error when addressing the OIDC Client endpoint')
+        print('Error: %s' % e)
+        sys.exit(1)
 
     # If there are links on this page, then more than one
     # backends are configured. Pick the correct backend
@@ -109,7 +123,22 @@ def main():
 
     if verbose:
         print("\ndexLoginPage SUBMITTING FORM --> ...")
-    dexLoginGrantAccessResponse = br.submit()
+    try:
+        dexLoginGrantAccessResponse = br.submit()
+    except mechanize.HTTPError as e:
+        if e.code == 500:
+            # handles mis-configuration of baseND for example
+            # handles DNS lookup failure for example
+            print('Dex server replied with HTTP error code 500.\n'
+                  'Review the dex server pod log and configuration '
+                  'to resolve the error.')
+        elif e.code == 401:
+            print('Failed to authenticate - check username/password')
+        else:
+            print('Unexpected error returned from the dex server; '
+                  'check pod status and logs')
+        print('Error: %s' % e)
+        sys.exit(1)
 
     # grant access final response
     if verbose:
