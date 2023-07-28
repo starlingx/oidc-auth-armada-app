@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 #
-# Copyright (c) 2020 Wind River Systems, Inc.
+# Copyright (c) 2020-2023 Wind River Systems, Inc.
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -20,14 +20,15 @@ def main():
 
     parser = ArgumentParser(description="OIDC authentication")
 
+    # The alias "oamcontroller" is present in "/etc/hosts" and points to the
+    # controller OAM floating address.
     parser.add_argument("-c", "--client", dest="client",
-                        help="OIDC client IP address",
-                        required=True)
+                        help="OIDC client IP address (default: controller "
+                        "floating OAM IP)", default="oamcontroller")
     parser.add_argument("-u", "--username", dest="username",
-                        help="Username",
-                        required=True)
+                        help="Username (default: current logged in username)")
     parser.add_argument("-p", "--password", dest="password",
-                        help="Password")
+                        help="Password. Prompted if not present.")
     parser.add_argument("-b", "--backend", dest="backend",
                         help="Dex configured backend name")
 
@@ -39,11 +40,21 @@ def main():
     password = args.password
     client = args.client
 
+    if not username:
+        try:
+            username = getpass.getuser()
+        # Unclear which exception(s) to expect.
+        except Exception as error:
+            print('ERROR', error)
+            sys.exit(1)
+        print('Using "' + username + '" as username.')
+
     if not password:
         try:
             password = getpass.getpass()
         except Exception as error:
             print('ERROR', error)
+            sys.exit(1)
 
     dexClientUrl = "https://" + client + ":30555"
     if verbose:
