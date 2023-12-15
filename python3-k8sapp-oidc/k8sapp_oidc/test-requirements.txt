@@ -2,16 +2,11 @@
 # of appearance. Changing the order has an impact on the overall integration
 # process, which may cause wedges in the gate later.
 hacking>=1.1.0,<=2.0.0 # Apache-2.0
-bandit;python_version>="3.0"
+astroid
+bandit<1.7.2;python_version>="3.0"
 coverage>=3.6
-discover
-isort<5;python_version>="3.0"
 fixtures>=3.0.0 # Apache-2.0/BSD
 mock>=2.0.0 # BSD
-passlib>=1.7.0
-psycopg2-binary
-pylint<2.1.0;python_version<"3.0" # GPLv2
-pylint<2.3.0;python_version>="3.0" # GPLv2
 python-subunit>=0.0.18
 requests-mock>=0.6.0 # Apache-2.0
 sphinx
@@ -20,7 +15,6 @@ oslotest>=3.2.0 # Apache-2.0
 stestr>=1.0.0 # Apache-2.0
 testrepository>=0.0.18
 testtools!=1.2.0,>=0.9.36
-pytest
-pyudev
-migrate
-markupsafe
+isort<5;python_version>="3.0"
+pylint
+pycryptodomex
