@@ -1,0 +1,5 @@
+oidc-client-helm (0.1-1) unstable; urgency=medium
+
+  * Initial release.
+
+ --  Joshua Reed <joshua.reed@windriver.com>  Tue, 21 Dec 2024 20:07:42 +0000

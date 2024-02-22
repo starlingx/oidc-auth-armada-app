@@ -1,0 +1,5 @@
+dexidp-helm (0.15-3) unstable; urgency=medium
+
+  * Initial release of wrapped dexidp v0.15.3
+
+ --  Joshua Reed <joshua.reed@windriver.com>  Tue, 21 Dec 2024 20:07:42 +0000

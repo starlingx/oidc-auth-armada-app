@@ -15,40 +15,44 @@ export APP_TARBALL = $(APP_NAME)-$(APP_VERSION).tgz
 export HELM_FOLDER = /usr/lib/helm
 export HELM_REPO = stx-platform
 export STAGING = staging
-export DEX_TAR_NAME = dex-0.15.3.tgz
 
 %:
 	dh $@
 
 override_dh_auto_build:
-	# patch secret-observer
-	patch -p1 < files/0001-move-metadata-release-for-helmv3.patch
-	# Create the TGZ file.
-	cd helm-charts && make oidc-client
-	cd helm-charts && make secret-observer
-	# patch the dex chart
-	tar xf ${DEX_TAR_NAME}
-	rm ${DEX_TAR_NAME}
-	patch -p1 < files/0001-Create-new-config-value-extraStaticClients.patch
-	find dex -type f -print0 | xargs -0 tar zcf ${DEX_TAR_NAME}
-	rm -r dex
+
 	# Setup the staging directory.
 	mkdir -p $(STAGING)
 	cp files/metadata.yaml $(STAGING)
+	cp -Rv fluxcd-manifests $(STAGING)
 	mkdir -p $(STAGING)/charts
-	cp helm-charts/*.tgz $(STAGING)/charts
-	cp dex*.tgz $(STAGING)/charts
-	cp -R fluxcd-manifests $(STAGING)
+	cp /usr/lib/helm/*.tgz $(STAGING)/charts
+
+	# Adjust the helmrelease yamls based on the chart versions
+	for c in $(STAGING)/charts/*; do \
+		chart=$$(basename $$c .tgz); \
+		chart_name=$${chart%-*}; \
+		chart_version=$${chart##*-}; \
+		echo "Found $$chart; name: $$chart_name, version: $$chart_version"; \
+		chart_manifest=$$(find $(STAGING)/fluxcd-manifests -name helmrelease.yaml -exec grep -q "chart:.*$$chart_name" {} \; -print); \
+		echo "Updating manifest: $$chart_manifest with chart version: $$chart_version"; \
+		sed -i "s/REPLACE_HELM_CHART_VERSION/$$chart_version/g" $$chart_manifest; \
+		grep version $$chart_manifest; \
+	done
+
 	# Populate metadata.
 	sed -i 's/APP_REPLACE_NAME/$(APP_NAME)/g' $(STAGING)/metadata.yaml
 	sed -i 's/APP_REPLACE_VERSION/$(APP_VERSION)/g' $(STAGING)/metadata.yaml
 	sed -i 's/HELM_REPLACE_REPO/$(HELM_REPO)/g' $(STAGING)/metadata.yaml
+
 	# Copy the plugins: installed in the buildroot
 	mkdir -p $(STAGING)/plugins
 	cp /plugins/*.whl $(STAGING)/plugins
+
 	# Create the app package.
 	cd $(STAGING) && find . -type f ! -name '*.md5' -print0 | xargs -0 md5sum > checksum.md5
 	tar cfz $(APP_TARBALL) -C $(STAGING)/ .
+
 	# Cleanup staging
 	rm -rf $(STAGING)
 
@@ -57,5 +61,7 @@ override_dh_auto_install:
 	install -d -m 755 $(APP_FOLDER)
 	install -p -D -m 755 $(APP_TARBALL) $(APP_FOLDER)
 	install -d -m 750 $(BACKUP_FOLDER)
+
+override_dh_auto_test:
 
 override_dh_usrlocal:

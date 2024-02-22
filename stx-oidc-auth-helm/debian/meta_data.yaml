@@ -1,18 +1,10 @@
 ---
 debname: stx-oidc-auth-helm
-debver: 1.0-1
+debver: 1.0-2
 src_path: stx-oidc-auth-helm
-src_files:
-  - ${MY_REPO}/stx/helm-charts/secret-observer/secret-observer/helm-charts
-dl_files:
-  dex-0.15.3.tgz:
-    topdir: null
-    url: https://github.com/dexidp/helm-charts/releases/download/dex-0.15.3/dex-0.15.3.tgz
-    sha256sum: 8100ba92ee85ee1b25298bcf9ea72f09a004ef502e43f38e45bf793cae5b88f3
 revision:
   dist: $STX_DIST
-  FILES_GITREVCOUNT:
-    - 638dc8f9242b0b65afed7c54c6ddc5f60744ab97
+  stx_patch: 6
   GITREVCOUNT:
     SRC_DIR: ${MY_REPO}/stx/oidc-auth-armada-app
     BASE_SRCREV: f045d574f30a3fa5cb555fe805a7a16244091c79

@@ -4,7 +4,9 @@ Priority: optional
 Maintainer: StarlingX Developers <starlingx-discuss@lists.starlingx.io>
 Build-Depends: debhelper-compat (= 13),
  helm,
- python3-k8sapp-oidc,
+ oidc-client-helm,
+ secret-observer-helm,
+ dexidp-helm,
  python3-k8sapp-oidc-wheels,
  build-info
 Standards-Version: 4.5.1

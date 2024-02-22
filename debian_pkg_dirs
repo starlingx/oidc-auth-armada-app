@@ -1,3 +1,6 @@
+helm-charts/custom/oidc-client-helm
+helm-charts/custom/secret-observer-helm
+helm-charts/upstream/dexidp-helm
 oidc-auth-tools
 python3-k8sapp-oidc
 stx-oidc-auth-helm

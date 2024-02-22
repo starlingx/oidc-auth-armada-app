@@ -1,0 +1,15 @@
+---
+debname: dexidp-helm
+debver: 0.15-3
+dl_path:
+  name: dex-0.15.3.tgz
+  url: https://github.com/dexidp/helm-charts/releases/download/dex-0.15.3/dex-0.15.3.tgz
+  sha256sum: 8100ba92ee85ee1b25298bcf9ea72f09a004ef502e43f38e45bf793cae5b88f3
+src_files:
+  - dexidp-helm/files/Makefile
+revision:
+  dist: $STX_DIST
+  stx_patch: 1
+  GITREVCOUNT:
+    BASE_SRCREV: 2a5db63dc246d1e2cdbc964b40e7530c035b2b1e
+    SRC_DIR: ${MY_REPO}/stx/oidc-auth-armada-app/helm-charts/upstream/dexidp-helm

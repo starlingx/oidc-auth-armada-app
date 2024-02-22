@@ -19,14 +19,14 @@ values.yaml.
 Signed-off-by: Michel Thebeau <Michel.Thebeau@windriver.com>
 Signed-off-by: Joao Victor Portal <Joao.VictorPortal@windriver.com>
 ---
- dex/templates/secret.yaml | 67 +++++++++++++++++++++++++++++++++++++--
- dex/values.yaml           | 13 ++++++++
+ templates/secret.yaml | 67 +++++++++++++++++++++++++++++++++++++--
+ values.yaml           | 13 ++++++++
  2 files changed, 78 insertions(+), 2 deletions(-)
 
-diff --git a/dex/templates/secret.yaml b/dex/templates/secret.yaml
+diff --git a/templates/secret.yaml b/templates/secret.yaml
 index 27d3954..24f694a 100644
---- a/dex/templates/secret.yaml
-+++ b/dex/templates/secret.yaml
+--- a/templates/secret.yaml
++++ b/templates/secret.yaml
 @@ -6,6 +6,69 @@ metadata:
    labels:
      {{- include "dex.labels" . | nindent 4 }}
@@ -99,14 +99,14 @@ index 27d3954..24f694a 100644
 +    {{- end }}
 +    {{- end }}
  {{- end }}
-diff --git a/dex/values.yaml b/dex/values.yaml
+diff --git a/values.yaml b/values.yaml
 index 756d49e..34ebf1b 100644
---- a/dex/values.yaml
-+++ b/dex/values.yaml
+--- a/values.yaml
++++ b/values.yaml
 @@ -55,6 +55,19 @@ configSecret:
  # See the [official documentation](https://dexidp.io/docs/).
  config: {}
- 
+
 +# Addendum for config:
 +# -- extraStaticClients
 +# if config.extraStaticClients is present it will be added to
@@ -123,6 +123,6 @@ index 756d49e..34ebf1b 100644
  # -- Additional storage [volumes](https://kubernetes.io/docs/concepts/storage/volumes/).
  # See the [API reference](https://kubernetes.io/docs/reference/kubernetes-api/workload-resources/pod-v1/#volumes-1) for details.
  volumes: []
--- 
+--
 2.17.1
 

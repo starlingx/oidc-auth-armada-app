@@ -1,0 +1,10 @@
+---
+debname: oidc-client-helm
+debver: 0.1-0
+src_path: oidc-client-helm
+revision:
+  dist: $STX_DIST
+  stx_patch: 19
+  GITREVCOUNT:
+    SRC_DIR: ${MY_REPO}/stx/oidc-auth-armada-app/helm-charts/custom/oidc-client-helm/oidc-client-helm/oidc-client
+    BASE_SRCREV: 2a5db63dc246d1e2cdbc964b40e7530c035b2b1e

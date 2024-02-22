@@ -1,7 +1,7 @@
 #
 # Copyright 2017 The Openstack-Helm Authors.
 #
-# Copyright (c) 2019 Wind River Systems, Inc.
+# Copyright (c) 2019,2024 Wind River Systems, Inc.
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -9,8 +9,8 @@
 SHELL := /bin/bash
 TASK  := build
 
-EXCLUDES := helm-toolkit doc tests tools logs tmp
-CHARTS := helm-toolkit $(filter-out $(EXCLUDES), $(patsubst %/.,%,$(wildcard */.)))
+EXCLUDES := doc tests tools logs tmp
+CHARTS := $(filter-out $(EXCLUDES), $(patsubst %/.,%,$(wildcard */.)))
 
 .PHONY: $(EXCLUDES) $(CHARTS)
 
@@ -25,18 +25,16 @@ $(CHARTS):
 
 init-%:
 	if [ -f $*/Makefile ]; then make -C $*; fi
-	if [ -f $*/requirements.yaml ]; then helm dep up $*; fi
 
 lint-%: init-%
 	if [ -d $* ]; then helm lint $*; fi
 
 build-%: lint-%
-	if [ -d $* ]; then helm package $*; fi
+	if [ -d $* ]; then helm package --version $(CHART_VERSION) $*; fi
 
 clean:
 	@echo "Clean all build artifacts"
 	rm -f */templates/_partials.tpl */templates/_globals.tpl
-	rm -f *tgz */charts/*tgz */requirements.lock
 	rm -rf */charts */tmpcharts
 
 %:

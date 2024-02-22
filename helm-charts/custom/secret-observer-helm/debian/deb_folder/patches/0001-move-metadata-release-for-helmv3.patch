@@ -28,6 +28,6 @@ index 322bd73..5cf33d5 100644
  imagePullSecrets:
    - name: default-registry-key
  {{- end -}}
--- 
+--
 2.29.2
 

@@ -1,0 +1,12 @@
+---
+debname: secret-observer-helm
+debver: 0.1-1
+src_path: secret-observer-helm
+src_files:
+  - ${MY_REPO}/stx/helm-charts/secret-observer/secret-observer/helm-charts
+revision:
+  dist: $STX_DIST
+  GITREVCOUNT:
+    stx_patch: 1
+    SRC_DIR: ${MY_REPO}/stx/oidc-auth-armada-app/helm-charts/custom/secret-observer-helm/secret-observer-helm
+    BASE_SRCREV: 2a5db63dc246d1e2cdbc964b40e7530c035b2b1e

@@ -1,0 +1,30 @@
+#!/usr/bin/make -f
+# export DH_VERBOSE = 1
+
+export ROOT = debian/tmp
+export APP_FOLDER = $(ROOT)/usr/lib/helm
+
+export DEB_VERSION = $(shell dpkg-parsechangelog | egrep '^Version:' | cut -f 2 -d ' ')
+export RELEASE = $(shell echo $(DEB_VERSION) | cut -f 1 -d '-')
+export REVISION = $(shell echo $(DEB_VERSION) | cut -f 4 -d '.')
+export CHART_VERSION = $(RELEASE).$(REVISION)
+
+%:
+	dh $@
+
+override_dh_auto_build:
+
+	mkdir -p build
+
+	mv helm-charts build
+	mv Makefile build/helm-charts
+
+	# Patch & Build the chart
+	cd build/helm-charts && make CHART_VERSION=$(CHART_VERSION) secret-observer
+
+
+override_dh_auto_install:
+	install -d -m 755 $(APP_FOLDER)
+	install -p -D -m 755 build/helm-charts/secret-observer*.tgz $(APP_FOLDER)
+
+override_dh_auto_test:
