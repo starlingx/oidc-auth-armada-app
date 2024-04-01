@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2020-2023 Wind River Systems, Inc.
+# Copyright (c) 2020-2024 Wind River Systems, Inc.
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -33,14 +33,6 @@ config:
   issuer_root_ca_secret: dex-client-secret
   listen: https://0.0.0.0:5555
   redirect_uri: https://10.10.10.3:30555/callback
-
-ingress:
-  enabled: false
-  annotations: {}
-  hosts:
-    - host: chart-example.local
-      paths: []
-  tls: []
 
 livenessProbe:
   initialDelaySeconds: 1
