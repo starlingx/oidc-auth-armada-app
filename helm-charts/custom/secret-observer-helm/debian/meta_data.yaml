@@ -7,6 +7,5 @@ src_files:
 revision:
   dist: $STX_DIST
   GITREVCOUNT:
-    stx_patch: 1
-    SRC_DIR: ${MY_REPO}/stx/oidc-auth-armada-app/helm-charts/custom/secret-observer-helm/secret-observer-helm
-    BASE_SRCREV: 2a5db63dc246d1e2cdbc964b40e7530c035b2b1e
+    SRC_DIR: ${MY_REPO}/stx/helm-charts/secret-observer/secret-observer/helm-charts/secret-observer
+    BASE_SRCREV: 57d1f3cbc390f72c503edc8744de718694b2549a
