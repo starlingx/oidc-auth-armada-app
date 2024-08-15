@@ -70,3 +70,15 @@ strategy:
     maxUnavailable: 1
     maxSurge: 1
   type: RollingUpdate
+
+livenessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 13
+  periodSeconds: 13
+  timeoutSeconds: 8
+
+readinessProbe:
+  failureThreshold: 3
+  initialDelaySeconds: 13
+  periodSeconds: 13
+  timeoutSeconds: 8

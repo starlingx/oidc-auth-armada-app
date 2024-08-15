@@ -1,0 +1,62 @@
+From 114850f8fb58d006292b0e2e871a235b1cf5e9c4 Mon Sep 17 00:00:00 2001
+From: Joaci Morais <Joaci.deMorais@windriver.com>
+Date: Fri, 16 Aug 2024 11:03:55 -0300
+Subject: [PATCH] Added support to tweak liveness Probe
+
+We need to adjust periodSeconds and timeoutSeconds in the
+livenessProbe and readinessProbe in order to avoid heavy load
+on weak cpu's
+
+Signed-off-by: Joaci Morais <Joaci.deMorais@windriver.com>
+---
+ templates/deployment.yaml |  8 ++++++++
+ values.yaml               | 13 +++++++++++++
+ 2 files changed, 21 insertions(+)
+
+diff --git a/templates/deployment.yaml b/templates/deployment.yaml
+index 247dd39f..d976df08 100644
+--- a/templates/deployment.yaml
++++ b/templates/deployment.yaml
+@@ -107,10 +107,18 @@ spec:
+             httpGet:
+               path: /healthz/live
+               port: telemetry
++            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
++            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
++            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
++            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+           readinessProbe:
+             httpGet:
+               path: /healthz/ready
+               port: telemetry
++            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
++            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
++            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
++            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+           resources:
+             {{- toYaml .Values.resources | nindent 12 }}
+           volumeMounts:
+diff --git a/values.yaml b/values.yaml
+index 7452791e..a3088aa3 100644
+--- a/values.yaml
++++ b/values.yaml
+@@ -334,3 +334,16 @@ networkPolicy:
+   #    ports:
+   #      - port: 636
+   #        protocol: TCP
++
++# Default probe configs
++livenessProbe:
++  initialDelaySeconds: 1
++  failureThreshold: 3
++  periodSeconds: 10
++  timeoutSeconds: 1
++
++readinessProbe:
++  initialDelaySeconds: 1
++  failureThreshold: 3
++  periodSeconds: 10
++  timeoutSeconds: 1
+\ No newline at end of file
+--
+2.25.1
