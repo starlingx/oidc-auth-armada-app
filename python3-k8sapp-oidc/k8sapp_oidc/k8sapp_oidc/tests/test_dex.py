@@ -33,11 +33,28 @@ class DexTestCase(test_plugins.K8SAppOidcAppMixin,
         oam_addr_name = utils.format_address_name(constants.CONTROLLER_HOSTNAME,
                                                   constants.NETWORK_TYPE_OAM)
         oam_address = self.dbapi.address_get_by_name(oam_addr_name)
-        config_issuer = "https://%s:30556/dex" % (utils.format_url_address(oam_address.address))
+
+        # add some debug printing
+        print("Number of addresses (%s): %s" %
+            (type(oam_address), len(oam_address)))
+        i = 0
+        while i < len(oam_address):
+            print("Address[%s]: %s" % (i, str(oam_address[i].address)))
+            i += 1
+
+        # There should be one address
+        oam_url = utils.format_url_address(oam_address[0].address)
+        print("Url Address: %s" % oam_url)
+        config_issuer = "https://%s:30556/dex" % oam_url
         self.assertOverridesParameters(overrides, {
             # issuer is set properly
             'config': {'issuer': config_issuer}
         })
+
+        # Complain if there is more than one address.
+        # It already failed if the list was empty
+        if len(oam_address) > 1:
+            raise ValueError("Too many addresses in returned list")
 
 
 class DexIPv4ControllerHostTestCase(DexTestCase,

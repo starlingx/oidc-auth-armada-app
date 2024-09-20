@@ -31,7 +31,17 @@ class OidcClientTestCase(test_plugins.K8SAppOidcAppMixin,
         oam_addr_name = utils.format_address_name(constants.CONTROLLER_HOSTNAME,
                                                   constants.NETWORK_TYPE_OAM)
         address = self.dbapi.address_get_by_name(oam_addr_name)
-        oam_url = utils.format_url_address(address.address)
+
+        # add some debug printing
+        print("Number of addresses (%s): %s" % (type(address), len(address)))
+        i = 0
+        while i < len(address):
+            print("Address[%s]: %s" % (i, str(address[i].address)))
+            i += 1
+
+        # There should be one address
+        oam_url = utils.format_url_address(address[0].address)
+        print("Url Address: %s" % oam_url)
         parameters = {
             'config': {
                 'issuer': 'https://%s:30556/dex' % oam_url,
@@ -39,6 +49,11 @@ class OidcClientTestCase(test_plugins.K8SAppOidcAppMixin,
             }
         }
         self.assertOverridesParameters(overrides, parameters)
+
+        # Complain if there is more than one address.
+        # It already failed if the list was empty
+        if len(address) > 1:
+            raise ValueError("Too many addresses in returned list")
 
 
 class OidcClientIPv4ControllerHostTestCase(OidcClientTestCase,
