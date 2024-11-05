@@ -9,6 +9,7 @@
 from argparse import ArgumentParser
 import getpass
 import mechanize
+import os
 import re
 import six
 import ssl
@@ -31,6 +32,9 @@ def main():
                         help="Password. Prompted if not present.")
     parser.add_argument("-b", "--backend", dest="backend",
                         help="Dex configured backend name")
+    parser.add_argument("-ca", "--cacert", dest="cacert",
+                        help="Path to ca certificate file",
+                        default=None)
 
     parser.add_argument("-v", "--verbose", action='count')
     args = parser.parse_args()
@@ -39,6 +43,7 @@ def main():
     username = args.username
     password = args.password
     client = args.client
+    cacert = args.cacert
 
     if not username:
         try:
@@ -62,8 +67,39 @@ def main():
         print("username: " + username)
         print("password: " + password)
 
-    ssl._create_default_https_context = ssl._create_unverified_context
+    default_cacert = None
+    OS_CACERT = os.environ.get('OS_CACERT', None)
+    if OS_CACERT:
+        default_cacert = os.path.join(os.getcwd(), OS_CACERT)
+
+    # prioritize the cacert informed by the user, otherwise use the OS_CACERT
+    cafile = None
+    if cacert:
+        if os.path.exists(cacert):
+            cafile = cacert
+            if verbose:
+                print(f"Using given cafile: {cafile}")
+        else:
+            print(f"ERROR: The provided cacert file: {cacert} was not found")
+            sys.exit(1)
+
+    if cafile is None and default_cacert:
+        if os.path.exists(default_cacert):
+            cafile = default_cacert
+            if verbose:
+                print(f"Using certificate provided at OS_CACERT: {OS_CACERT}")
+        else:
+            print(f"WARN: The OS_CACERT set to {OS_CACERT} but was not found")
+
     br = mechanize.Browser()
+    if cafile:
+        br.set_ca_data(context=ssl.create_default_context(
+            cafile=cafile))
+    else:
+        if verbose:
+            print("WARN: No valid cerfiticate found, using unverified context")
+        br.set_ca_data(context=ssl._create_unverified_context(
+            cert_reqs=ssl.CERT_NONE))
     br.set_handle_robots(False)
     br.addheaders = [("User-agent", "Mozilla/5.0")]
 
@@ -185,7 +221,6 @@ def main():
     updateCredsCmd = ("kubectl config set-credentials " +
                       username + " --token " + idToken)
 
-    import os
     os.system(updateCredsCmd)
 
 
