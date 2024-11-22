@@ -1,0 +1,52 @@
+From 1473973fcc57fd24490a4e5ea5832b1faff9a4a0 Mon Sep 17 00:00:00 2001
+From: Joaci Morais <Joaci.deMorais@windriver.com>
+Date: Fri, 22 Nov 2024 17:04:27 -0300
+Subject: [PATCH] Add support to edit telemetry nodePort
+
+User requested to change the nodePort for telemetry service, in case
+this port conflicts with any user application ports. This patch is
+needed to support changes in nodePort parameter through overrides.
+
+Signed-off-by: Joaci Morais <Joaci.deMorais@windriver.com>
+---
+ templates/service.yaml | 5 ++++-
+ values.yaml            | 7 +++++++
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/templates/service.yaml b/templates/service.yaml
+index 8114e8d..58c7b92 100644
+--- a/templates/service.yaml
++++ b/templates/service.yaml
+@@ -49,7 +49,10 @@ spec:
+       {{- end }}
+     {{- end }}
+     - name: telemetry
+-      port: 5558
++      port: {{ .Values.service.ports.telemetry.port }}
++      {{- if and (or (eq .Values.service.type "NodePort") (eq .Values.service.type "LoadBalancer")) .Values.service.ports.telemetry.nodePort }}
++      nodePort: {{ .Values.service.ports.telemetry.nodePort }}
++      {{- end }}
+       targetPort: telemetry
+       protocol: TCP
+       {{- if semverCompare ">=1.20-0" .Capabilities.KubeVersion.GitVersion }}
+diff --git a/values.yaml b/values.yaml
+index 7452791..638d674 100644
+--- a/values.yaml
++++ b/values.yaml
+@@ -184,6 +184,13 @@ service:
+       # -- (int) gRPC node port (when applicable)
+       nodePort:
+ 
++    telemetry:
++      # -- telemetry service port
++      port: 5558
++
++      # -- (int) telemetry node port (when applicable)
++      nodePort:
++
+ ingress:
+   # -- Enable [ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/).
+   enabled: false
+-- 
+2.34.1
+
