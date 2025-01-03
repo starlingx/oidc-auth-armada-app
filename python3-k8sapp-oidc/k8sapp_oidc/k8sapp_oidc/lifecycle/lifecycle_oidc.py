@@ -13,7 +13,9 @@ from oslo_log import log as logging
 from sysinv.common import constants
 from sysinv.helm import lifecycle_base as base
 from sysinv.helm import common
+from sysinv.helm.lifecycle_constants import LifecycleConstants
 from sysinv.db import api as dbapi
+
 
 LOG = logging.getLogger(__name__)
 OVERRIDES_REQUIRED_MSG = "Overrides for all helm charts are required to apply \
@@ -27,9 +29,9 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
 
         """Perform lifecycle actions for an operation"""
 
-        if hook_info.lifecycle_type == constants.APP_LIFECYCLE_TYPE_RESOURCE:
+        if hook_info.lifecycle_type == LifecycleConstants.APP_LIFECYCLE_TYPE_RESOURCE:
             if hook_info.operation == constants.APP_APPLY_OP and \
-               hook_info.relative_timing == constants.APP_LIFECYCLE_TIMING_PRE:
+               hook_info.relative_timing == LifecycleConstants.APP_LIFECYCLE_TIMING_PRE:
                 return self.pre_apply(app_op, app, hook_info)
 
         super(OidcAppLifecycleOperator, self).app_lifecycle_actions(
