@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2022-2024 Wind River Systems, Inc.
+# Copyright (c) 2022-2025 Wind River Systems, Inc.
 #
 # SPDX-License-Identifier: Apache-2.0
 #
@@ -7,7 +7,7 @@
 image:
   repository: ghcr.io/dexidp/dex
   pullPolicy: IfNotPresent
-  tag: v2.40.0
+  tag: v2.41.1
 imagePullSecrets:
   - name: default-registry-key
 env:
