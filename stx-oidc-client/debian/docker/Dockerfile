@@ -1,7 +1,8 @@
-FROM golang:latest as builder
+FROM golang:latest AS builder
 WORKDIR /app
 ADD . /app/
 RUN go mod download
+RUN go mod tidy
 
 ENV CGO_ENABLED=0
 RUN go build --ldflags '-extldflags "-static"' -o stx-oidc-client .
