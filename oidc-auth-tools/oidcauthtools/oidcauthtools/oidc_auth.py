@@ -107,15 +107,28 @@ def main():
     try:
         dexLoginPage = br.open(dexClientUrl)
     except urllib.error.URLError as e:
-        conv_e = str(e.reason)
-        e_code = re.search(r"\d+", conv_e)
-        if (e_code.group()) == "111":
-            print('Check oidc-auth-apps application pod status')
-        elif (e_code.group()) == "113":
-            print('Check command line parameter OIDC client IP address (-c)')
-        else:
-            print('Unexpected error when addressing the OIDC Client endpoint')
-        print('Error: %s' % e)
+        if e.reason:
+            print("Error")
+            print(f"- Reason: {e.reason}")
+            error_code = re.search(r"\d+", str(e.reason))
+            if error_code:
+                ecode = int(error_code.group())
+                print(f"- Code: {ecode}")
+                if ecode == 111:
+                    print("- Check oidc-auth-apps application pod status")
+                elif ecode == 113:
+                    print("- Check OIDC client IP address parameter (-c)")
+                elif ecode == 110:
+                    print("- Connection timeout")
+                else:
+                    print("- Unexpected Error addressing the OIDC Client")
+            else:
+                print("- Unexpected HTTP Error: "
+                      "failed to parse response code")
+                print('- Check oidc-auth-apps configuration on the controller')
+        sys.exit(1)
+    except Exception as e:
+        print(f'Unexpected Error from mechanize.Browser.open(): {e}')
         sys.exit(1)
 
     # If there are links on this page, then more than one
@@ -136,8 +149,16 @@ def main():
                 print("backend: %s" % all_backends[-1])
 
             if all_backends[-1] == args.backend:
-                br.follow_link(link)
-                found_backend = True
+                try:
+                    br.follow_link(link)
+                    found_backend = True
+                except mechanize.LinkNotFoundError:
+                    print(f'Error: The backend link: {link} was not found')
+                except mechanize.HTTPError as e:
+                    print(f'HTTP Error {e.code}:failed following link: {link}')
+                except Exception as e:
+                    print('Unexpected Error from '
+                          f'mechanize.Browser.follow_link(): {e}')
 
         if not found_backend:
             print("Backend not found, please choose one of: %s" % all_backends)
@@ -185,6 +206,9 @@ def main():
             print('Unexpected error returned from the dex server; '
                   'check pod status and logs')
         print('Error: %s' % e)
+        sys.exit(1)
+    except Exception as e:
+        print(f'Unexpected Error from mechanize.Browser.submit(): {e}')
         sys.exit(1)
 
     # grant access final response
