@@ -45,6 +45,19 @@ def main():
     client = args.client
     cacert = args.cacert
 
+    home_path = os.getenv('HOME', '')
+    wad_pattern = r'^/home/([^/]+\.[^/]+)/([^/]+)$'
+    match_wad_user = re.match(wad_pattern, home_path)
+
+    if match_wad_user and not username:
+        wad_username = match_wad_user.group(2)
+        WARN_WAD_USER = f"""WARNING: Windows Active Directory user detected
+Please use (-u) option to specify the username without the WAD domain
+    Usage:
+        oidc-auth -u {wad_username}"""
+        print(WARN_WAD_USER)
+        sys.exit(1)
+
     if not username:
         try:
             username = getpass.getuser()
