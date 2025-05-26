@@ -14,7 +14,7 @@ tlsName: local-dex.tls
 
 image:
   repository: docker.io/starlingx/stx-oidc-client
-  tag: stx.11.0-v1.0.8
+  tag: stx.11.0-v1.0.9
   pullPolicy: IfNotPresent
 
 nameOverride: ""

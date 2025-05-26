@@ -1,3 +1,9 @@
+dexidp-helm (0.23-0) unstable; urgency=medium
+
+  * Upgrade of wrapped dexidp v0.23.0
+
+ --  Joaci Morais <joaci.demorais@windriver.com>  Mon, 26 Mai 2025 10:10:00 +0000
+
 dexidp-helm (0.20-0) unstable; urgency=medium
 
   * Upgrade of wrapped dexidp v0.20.0
