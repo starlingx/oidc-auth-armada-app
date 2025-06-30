@@ -1,10 +1,10 @@
 ---
 debname: dexidp-helm
-debver: 0.20-0
+debver: 0.23-0
 dl_path:
-  name: dex-0.20.0.tgz
-  url: https://github.com/dexidp/helm-charts/releases/download/dex-0.20.0/dex-0.20.0.tgz
-  sha256sum: e02d370406665e36c3399867895f08a2f30ee6265923e4d75eed4b8d5a85c9ff
+  name: dex-0.23.0.tgz
+  url: https://github.com/dexidp/helm-charts/releases/download/dex-0.23.0/dex-0.23.0.tgz
+  sha256sum: 2b4cd662b1bba1cfa7aae080e8a83471e6e60e7711b4a760a969d0247cbeb7bf
 src_files:
   - dexidp-helm/files/Makefile
 revision:
