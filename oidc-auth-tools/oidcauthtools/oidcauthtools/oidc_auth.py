@@ -254,6 +254,9 @@ Please use (-u) option to specify the username without the WAD domain
         print("Login succeeded.")
         idToken = node.text
 
+    if match_wad_user:
+        username = getpass.getuser()
+
     print("Updating kubectl config ...")
     updateCredsCmd = ("kubectl config set-credentials " +
                       username + " --token " + idToken)
