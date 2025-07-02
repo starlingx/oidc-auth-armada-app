@@ -14,8 +14,6 @@ behavior:
   platform_managed_app: yes
   desired_state: uploaded
   evaluate_reapply: # TODO(dvoicule): optimize triggers
-    after:
-      - platform-integ-apps
     triggers:
       - type: runtime-apply-puppet
       - type: host-availability-updated
