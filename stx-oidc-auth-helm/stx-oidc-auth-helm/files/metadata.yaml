@@ -12,7 +12,7 @@ supported_k8s_version:
 
 behavior:
   platform_managed_app: yes
-  desired_state: uploaded
+  desired_state: applied
   evaluate_reapply: # TODO(dvoicule): optimize triggers
     triggers:
       - type: runtime-apply-puppet
@@ -23,3 +23,8 @@ behavior:
       - type: host-delete
         filters:
           - personality: controller
+
+dependent_apps:
+  - name: cert-manager
+    version: \d+\.\d+-\d+
+    action: apply
