@@ -1,3 +1,9 @@
+dexidp-helm (0.24-0) unstable; urgency=medium
+
+  * Upgrade of wrapped dexidp v0.24.0
+
+ --  Eduardo Almeida <Eduardo.AlmeidadosSantos@windriver.com>  Mon, 15 Dec 2025 09:00:00 +0000
+
 dexidp-helm (0.23-0) unstable; urgency=medium
 
   * Upgrade of wrapped dexidp v0.23.0
