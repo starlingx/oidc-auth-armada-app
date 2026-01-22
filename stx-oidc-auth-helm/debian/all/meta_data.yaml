@@ -4,7 +4,7 @@ debver: 1.0-2
 src_path: stx-oidc-auth-helm
 revision:
   dist: $STX_DIST
-  stx_patch: 6
+  stx_patch: 7
   GITREVCOUNT:
     SRC_DIR: ${MY_REPO}/stx/oidc-auth-armada-app
     BASE_SRCREV: f045d574f30a3fa5cb555fe805a7a16244091c79
