@@ -527,6 +527,7 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
             fails.
         """
         values = {
+            "cronSchedule": "*/15 * * * *",
             "observedSecrets": [
                 {
                     "secretName": "oidc-auth-apps-certificate",
