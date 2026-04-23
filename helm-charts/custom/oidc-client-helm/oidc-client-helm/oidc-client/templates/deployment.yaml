@@ -31,22 +31,6 @@ spec:
     spec:
       imagePullSecrets:
         - name: default-registry-key
-      initContainers:
-        - name: wait-for-oidc-issuer
-          image: {{ .Values.waitForOidcIssuer.image }}
-          command:
-            - sh
-            - -c
-            - |
-              for i in $(seq 1 300); do
-                wget -q --spider --no-check-certificate \
-                  "${OIDC_ISSUER}/.well-known/openid-configuration" && exit 0
-                sleep 2
-              done
-              exit 1
-          env:
-            - name: OIDC_ISSUER
-              value: "{{ .Values.config.issuer }}"
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

@@ -17,9 +17,6 @@ image:
   tag: stx.12.0-v1.0.10
   pullPolicy: IfNotPresent
 
-waitForOidcIssuer:
-  image: docker.io/library/busybox:1.37.0
-
 nameOverride: ""
 fullnameOverride: ""
 
