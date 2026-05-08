@@ -6,6 +6,8 @@
 
 from oslo_log import log as logging
 
+from k8sapp_oidc.common import constants as app_constants
+
 from sysinv.common import constants
 
 from sysinv.helm import base
@@ -75,10 +77,10 @@ class DexBaseHelm(base.BaseHelm):
         return self.SUPPORTED_NAMESPACES
 
     def _get_client_id(self):
-        return 'stx-oidc-client-app'
+        return app_constants.DEFAULT_OIDC_CLIENT_ID
 
     def _get_client_secret(self):
-        return 'St8rlingX'
+        return app_constants.DEFAULT_OIDC_CLIENT_SECRET
 
     def _get_platform_tls_config(self):
         """Read TLS min version and cipher suite from platform service parameters.

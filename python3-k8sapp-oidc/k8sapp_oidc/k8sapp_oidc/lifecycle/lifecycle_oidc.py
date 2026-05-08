@@ -73,6 +73,13 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
         ):
             return self.pre_apply_operation(context, conductor_obj, app)
 
+        if (
+            hook_info.lifecycle_type == Lc.APP_LIFECYCLE_TYPE_OPERATION
+            and hook_info.relative_timing == Lc.APP_LIFECYCLE_TIMING_POST
+            and hook_info.operation == constants.APP_APPLY_OP
+        ):
+            return self.post_apply_operation(context, conductor_obj, app)
+
         super(OidcAppLifecycleOperator, self).app_lifecycle_actions(
             context, conductor_obj, app_op, app, hook_info)
 
@@ -119,6 +126,22 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
         # will throw and stop the apply process if invalid
         issuer_url = self._get_k8s_issuer_url(dbapi_instance)
         self._extract_oam_ip_from_oidc_issuer_url(issuer_url)
+
+    def post_apply_operation(self, context, conductor_obj, app):
+        """
+        Post-apply execution hook for the OIDC application operation.
+
+        Dumps OIDC login parameters (issuer URL, client ID, client secret,
+        issuer CA) to a well-known file so that kubeconfig-setup can read
+        them to configure oidc-login exec blocks without user interaction.
+
+        :param context: Request context provided by the conductor.
+        :param conductor_obj: Sysinv conductor manager instance.
+        :param app: Application object.
+        """
+        self._load_kube_config()
+        dbapi_instance = dbapi.get_instance()
+        self._dump_oidc_login_config(dbapi_instance)
 
     def pre_apply_operation(self, context, conductor_obj, app):
         """
@@ -802,3 +825,175 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
             raise exception.SysinvException(
                 "Invalid OIDC issuer URL"
             ) from e
+
+    def _dump_oidc_login_config(self, dbapi_instance):
+        """Dump OIDC login parameters to a well-known file.
+
+        Writes oidc-issuer-url, oidc-client-id, oidc-client-secret, and
+        oidc-issuer-ca to a YAML file that kubeconfig-setup can read to
+        configure oidc-login exec blocks automatically.
+
+        :param sysinv.db.api.DbApi dbapi_instance: Sysinv database API instance.
+
+        :raises SysinvException: If any required OIDC login parameter is
+            missing or if the config file cannot be written.
+        """
+        issuer_url = self._get_k8s_issuer_url(dbapi_instance)
+        client_id = self._get_oidc_client_id(dbapi_instance)
+        client_secret = self._get_oidc_client_secret(dbapi_instance)
+        issuer_ca = self._get_issuer_ca_cert()
+
+        missing = []
+        if not issuer_url:
+            missing.append('oidc-issuer-url')
+        if not client_id:
+            missing.append('oidc-client-id')
+        if not client_secret:
+            missing.append('oidc-client-secret')
+        if not issuer_ca:
+            missing.append('oidc-issuer-ca')
+
+        if missing:
+            raise exception.SysinvException(
+                "OIDC login config incomplete, missing: %s"
+                % ', '.join(missing)
+            )
+
+        config_data = {
+            'oidc-issuer-url': issuer_url,
+            'oidc-client-id': client_id,
+            'oidc-client-secret': client_secret,
+            'oidc-issuer-ca': issuer_ca,
+        }
+
+        config_path = app_constants.OIDC_LOGIN_CONFIG_FILE
+        tmp_path = config_path + '.tmp'
+        try:
+            with open(tmp_path, 'w') as f:
+                yaml.safe_dump(config_data, f, default_flow_style=False)
+            os.chmod(tmp_path, 0o644)
+            os.rename(tmp_path, config_path)
+            LOG.info("OIDC login config written to %s", config_path)
+        except Exception as e:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise exception.SysinvException(
+                "Failed to write OIDC login config to %s: %s"
+                % (config_path, e)
+            ) from e
+
+    def _get_issuer_ca_cert(self):
+        try:
+            dbapi_instance = dbapi.get_instance()
+            secret_name = self._get_dex_tls_secret_name(dbapi_instance)
+
+            k8s_v1_client = client.CoreV1Api()
+            secret = k8s_v1_client.read_namespaced_secret(
+                name=secret_name,
+                namespace=common.HELM_NS_KUBE_SYSTEM,
+            )
+            ca_bytes = secret.data.get('ca.crt')
+            if not ca_bytes:
+                raise exception.SysinvException(
+                    f"Secret '{secret_name}' has no ca.crt"
+                )
+            return ca_bytes
+        except exception.SysinvException:
+            raise
+        except Exception as e:
+            raise exception.SysinvException(
+                "Failed to read issuer CA cert from dex TLS secret"
+            ) from e
+
+    def _get_dex_tls_secret_name(self, dbapi_instance):
+        """Dex TLS server certificate is placed at /etc/dex/tls.
+        So this method returns the secret name that contains this cert.
+
+        Reads the dex Helm user overrides and finds the volume whose
+        corresponding volumeMount targets /etc/dex/tls, then returns
+        the secretName from that volume.
+
+        :param sysinv.db.api.DbApi dbapi_instance: Sysinv database API instance.
+        :returns str: Name of the Kubernetes secret mounted at /etc/dex/tls.
+        :raises SysinvException: If the secret name cannot be determined.
+        """
+        try:
+            db_app = dbapi_instance.kube_app_get(constants.HELM_APP_OIDC_AUTH)
+            helm_override = dbapi_instance.helm_override_get(
+                app_id=db_app.id,
+                name=app_constants.HELM_CHART_DEX,
+                namespace=common.HELM_NS_KUBE_SYSTEM,
+            )
+
+            if not helm_override.user_overrides:
+                raise exception.SysinvException(
+                    "Dex chart has no user overrides configured"
+                )
+
+            overrides = yaml.safe_load(helm_override.user_overrides)
+            volume_mounts = overrides.get('volumeMounts', [])
+            volumes = overrides.get('volumes', [])
+
+            # Find the volume name mounted at /etc/dex/tls
+            tls_volume_name = None
+            for vm in volume_mounts:
+                if vm.get('mountPath') == '/etc/dex/tls':
+                    tls_volume_name = vm.get('name')
+                    break
+
+            if not tls_volume_name:
+                raise exception.SysinvException(
+                    "No volumeMount found for /etc/dex/tls in dex overrides"
+                )
+
+            # Find the secret name for that volume
+            for vol in volumes:
+                if vol.get('name') == tls_volume_name:
+                    secret_name = vol.get('secret', {}).get('secretName')
+                    if secret_name:
+                        LOG.info("Dex TLS secret name resolved to '%s'", secret_name)
+                        return secret_name
+
+            raise exception.SysinvException(
+                f"No secret found for volume '{tls_volume_name}' in dex overrides"
+            )
+
+        except exception.SysinvException:
+            raise
+        except Exception as e:
+            raise exception.SysinvException(
+                "Failed to determine dex TLS secret name from overrides"
+            ) from e
+
+    def _get_oidc_client_id(self, dbapi_instance):
+        try:
+            param = dbapi_instance.service_parameter_get_one(
+                constants.SERVICE_TYPE_KUBERNETES,
+                constants.SERVICE_PARAM_SECTION_KUBERNETES_APISERVER,
+                constants.SERVICE_PARAM_NAME_OIDC_CLIENT_ID,
+            )
+            return param.value
+        except exception.NotFound:
+            return app_constants.DEFAULT_OIDC_CLIENT_ID
+
+    def _get_oidc_client_secret(self, dbapi_instance):
+        try:
+            db_app = dbapi_instance.kube_app_get(constants.HELM_APP_OIDC_AUTH)
+            helm_override = dbapi_instance.helm_override_get(
+                app_id=db_app.id,
+                name=app_constants.HELM_CHART_OIDC_CLIENT,
+                namespace=common.HELM_NS_KUBE_SYSTEM,
+            )
+            if helm_override.user_overrides:
+                overrides = yaml.safe_load(helm_override.user_overrides)
+                secret = overrides.get('config', {}).get('client_secret')
+                if secret:
+                    return secret
+        except Exception as e:
+            raise exception.SysinvException(
+                "Failed to retrieve OIDC client secret from Helm overrides"
+            ) from e
+
+        return app_constants.DEFAULT_OIDC_CLIENT_SECRET
