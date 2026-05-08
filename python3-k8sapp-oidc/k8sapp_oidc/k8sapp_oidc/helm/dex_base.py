@@ -23,6 +23,8 @@ class DexBaseHelm(base.BaseHelm):
     # OIDC client and DEX Node ports
     OIDC_CLIENT_NODE_PORT = 30555
     DEX_NODE_PORT = 30556
+    # Port for oauth2-proxy callback (routed via HAProxy on Keystone port)
+    OAUTH2_PROXY_PORT = 5000
 
     @property
     def CHART(self):

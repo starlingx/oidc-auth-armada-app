@@ -22,11 +22,14 @@ class Dex(DexBaseHelm):
     def _get_static_clients(self):
         static_clients = []
 
+        oam_address = self._format_url_address(self._get_oam_address())
+
         oidc_client = {
             'id': self._get_client_id(),
-            'redirectURIs': ["https://%s:%s/callback" %
-                             (self._format_url_address(self._get_oam_address()),
-                              self.OIDC_CLIENT_NODE_PORT)],
+            'redirectURIs': [
+                "https://%s:%s/callback" % (oam_address, self.OIDC_CLIENT_NODE_PORT),
+                "https://%s:%s/oauth2/callback" % (oam_address, self.OAUTH2_PROXY_PORT),
+            ],
             'name': 'STX OIDC Client app',
             'secret': self._get_client_secret()
         }
