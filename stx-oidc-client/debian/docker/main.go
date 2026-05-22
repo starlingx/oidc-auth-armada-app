@@ -1,6 +1,6 @@
 // Initial file was taken from https://github.com/dexidp/dex/tree/master/cmd/example-app 2019
 //
-// Copyright (c) 2025 Wind River Systems, Inc.
+// Copyright (c) 2025-2026 Wind River Systems, Inc.
 //
 // SPDX-License-Identifier: Apache-2.0
 //
@@ -52,13 +52,49 @@ type app struct {
 }
 
 type Config struct {
-    a         app
-    issuerURL string
-    listen    string
-    tlsCert   string
-    tlsKey    string
-    rootCAs   string
-    debug     bool
+    a               app
+    issuerURL       string
+    listen          string
+    tlsCert         string
+    tlsKey          string
+    tlsMinVersion   string
+    tlsCipherSuites []string
+    rootCAs         string
+    debug           bool
+}
+
+// tlsVersionMap maps version strings to tls.Version constants.
+var tlsVersionMap = map[string]uint16{
+    "1.2": tls.VersionTLS12,
+    "1.3": tls.VersionTLS13,
+}
+
+// buildServerTLSConfig creates a tls.Config for the HTTPS server
+// using the configured minimum TLS version and cipher suites.
+func buildServerTLSConfig(minVersion string, cipherNames []string) *tls.Config {
+    cfg := &tls.Config{}
+
+    if v, ok := tlsVersionMap[minVersion]; ok {
+        cfg.MinVersion = v
+    } else {
+        cfg.MinVersion = tls.VersionTLS12
+    }
+
+    if len(cipherNames) > 0 {
+        nameToID := make(map[string]uint16)
+        for _, cs := range tls.CipherSuites() {
+            nameToID[cs.Name] = cs.ID
+        }
+        for _, name := range cipherNames {
+            if id, ok := nameToID[name]; ok {
+                cfg.CipherSuites = append(cfg.CipherSuites, id)
+            } else {
+                log.Printf("WARNING: unknown TLS cipher suite %q, skipping", name)
+            }
+        }
+    }
+
+    return cfg
 }
 
 // return an HTTP client which trusts the provided root CAs.
@@ -188,7 +224,12 @@ func start_app(config Config) {
         http.ListenAndServe(listenURL.Host, nil)
     case "https":
         log.Printf("listening on %s", config.listen)
-        http.ListenAndServeTLS(listenURL.Host, config.tlsCert, config.tlsKey, nil)
+        tlsCfg := buildServerTLSConfig(config.tlsMinVersion, config.tlsCipherSuites)
+        server := &http.Server{
+            Addr:      listenURL.Host,
+            TLSConfig: tlsCfg,
+        }
+        server.ListenAndServeTLS(config.tlsCert, config.tlsKey)
     default:
         fmt.Errorf("listen address %q is not using http or https", config.listen)
     }
@@ -213,6 +254,8 @@ var rootCmd = &cobra.Command{
         config.rootCAs = viper.GetString("issuer_root_ca")
         config.tlsCert = viper.GetString("tlsCert")
         config.tlsKey = viper.GetString("tlsKey")
+        config.tlsMinVersion = viper.GetString("tlsMinVersion")
+        config.tlsCipherSuites = viper.GetStringSlice("tlsCipherSuites")
         config.a.clientID = viper.GetString("client_id")
         config.a.clientSecret = viper.GetString("client_secret")
         config.a.redirectURI = viper.GetString("redirect_uri")

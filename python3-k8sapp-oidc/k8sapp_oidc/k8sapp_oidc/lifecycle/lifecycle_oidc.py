@@ -21,6 +21,8 @@ from kubernetes import config
 from kubernetes.client.rest import ApiException
 
 from k8sapp_oidc.common import constants as app_constants
+from k8sapp_oidc.helm.dex_base import DEX_TLS_VERSION_MAP
+from k8sapp_oidc.helm.dex_base import get_platform_tls_config
 
 from sysinv.common import constants
 from sysinv.common import exception
@@ -351,8 +353,12 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
 
         self._apply_oidc_certificate(oam_ip)
 
-        self._configure_oidc_client_override(dbapi_instance)
-        self._configure_dex_override(dbapi_instance, mgmt_ip, ldap_pwd)
+        tls_ver, tls_ciphers = self._get_platform_tls_config(dbapi_instance)
+
+        self._configure_oidc_client_override(
+            dbapi_instance, tls_ver, tls_ciphers)
+        self._configure_dex_override(
+            dbapi_instance, mgmt_ip, ldap_pwd, tls_ver)
         self._configure_secret_observer_override(dbapi_instance)
 
     def _apply_oidc_certificate(self, oam_ip):
@@ -438,23 +444,32 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
                 "Failed to apply OIDC Certificate"
             ) from e
 
-    def _configure_oidc_client_override(self, dbapi_instance):
+    def _configure_oidc_client_override(self, dbapi_instance,
+                                        tls_min_version, tls_cipher_suite):
         """Set Helm override values for the oidc-client chart.
 
         Links the chart to the correct TLS certificate and CA secret used for
-        OIDC communication.
+        OIDC communication, and configures TLS version and cipher suites.
 
         :param sysinv.db.api.DbApi dbapi_instance: Sysinv database API instance
             used to update Helm user overrides.
+        :param str tls_min_version: Platform TLS minimum version constant.
+        :param str tls_cipher_suite: Comma-separated IANA cipher suite names.
 
         :raises SysinvException: If applying the Helm override configuration
             fails.
         """
+        client_tls_version = DEX_TLS_VERSION_MAP.get(tls_min_version, '1.2')
+        cipher_list = [c.strip() for c in tls_cipher_suite.split(',')
+                       if c.strip()]
+
         values = {
             "tlsName": "oidc-auth-apps-certificate",
             "config": {
                 "issuer_root_ca": "/home/ca.crt",
                 "issuer_root_ca_secret": "oidc-auth-apps-certificate",
+                "tlsMinVersion": client_tls_version,
+                "tlsCipherSuites": cipher_list,
             },
         }
 
@@ -471,18 +486,20 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
                 "Failed to configure oidc-client Helm override"
             ) from e
 
-    def _configure_dex_override(self, dbapi_instance, mgmt_ip, ldap_pwd):
+    def _configure_dex_override(self, dbapi_instance, mgmt_ip, ldap_pwd,
+                                tls_min_version):
         """Set Helm override values for the dex chart.
 
         Configures Dex to authenticate against LDAP, using the management IP and
         provided LDAP password. The override also mounts the OIDC certificate
-        for TLS communication.
+        for TLS communication and sets the minimum TLS version.
 
         :param sysinv.db.api.DbApi dbapi_instance: Sysinv database API instance
             used to update Helm user overrides.
         :param str mgmt_ip: Management floating IP address used for the LDAP
             host.
         :param str ldap_pwd: Password for the LDAP bindDN user.
+        :param str tls_min_version: Platform TLS minimum version constant.
 
         :raises SysinvException: If applying the Helm override configuration
             fails.
@@ -490,10 +507,15 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
         ip = IPAddress(mgmt_ip)
         host = f"[{mgmt_ip}]" if ip.version == 6 else mgmt_ip
 
+        dex_tls_version = DEX_TLS_VERSION_MAP.get(tls_min_version, '1.2')
+
         values = {
             "config": {
                 "expiry": {
                     "idTokens": "24h"
+                },
+                "web": {
+                    "tlsMinVersion": dex_tls_version,
                 },
                 "connectors": [
                     {
@@ -669,6 +691,14 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
             raise exception.SysinvException(
                 f"Failed to set Helm user_overrides for {app_name}/{chart_name}"
             ) from e
+
+    def _get_platform_tls_config(self, dbapi_instance):
+        """Read TLS min version and cipher suite from platform service parameters.
+
+        :param sysinv.db.api.DbApi dbapi_instance: Sysinv database API instance.
+        :returns tuple: (tls_min_version, tls_cipher_suite) strings.
+        """
+        return get_platform_tls_config(dbapi_instance)
 
     def _load_kube_config(self):
         """Load and initialize the Kubernetes admin configuration.

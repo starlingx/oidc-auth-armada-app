@@ -1,11 +1,12 @@
 #
-# Copyright (c) 2020 Wind River Systems, Inc.
+# Copyright (c) 2020-2026 Wind River Systems, Inc.
 #
 # SPDX-License-Identifier: Apache-2.0
 #
 
 from k8sapp_oidc.common import constants as app_constants
 from k8sapp_oidc.helm.dex_base import DexBaseHelm
+from k8sapp_oidc.helm.dex_base import DEX_TLS_VERSION_MAP
 
 from sysinv.common import exception
 from sysinv.helm import common
@@ -40,6 +41,9 @@ class Dex(DexBaseHelm):
 
     def get_overrides(self, namespace=None):
 
+        tls_min_version, _ = self._get_platform_tls_config()
+        dex_tls_version = DEX_TLS_VERSION_MAP.get(tls_min_version, '1.2')
+
         env = {
             'name': 'KUBERNETES_POD_NAMESPACE',
             'value': common.HELM_NS_KUBE_SYSTEM
@@ -60,6 +64,9 @@ class Dex(DexBaseHelm):
                     'issuer': "https://%s:%s/dex" % (self._format_url_address(self._get_oam_address()),
                                                      self.DEX_NODE_PORT),
                     'staticClients': self._get_static_clients(),
+                    'web': {
+                        'tlsMinVersion': dex_tls_version,
+                    },
                 },
                 'replicaCount': self._num_replicas_for_platform_app(),
                 'env': env,
