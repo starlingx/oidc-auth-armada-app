@@ -1,0 +1,8 @@
+BUILDER=script
+LABEL=oauth2-proxy
+SOURCE_REPO=https://github.com/oauth2-proxy/oauth2-proxy.git
+SOURCE_REF=v7.15.2
+SOURCE_PATCHES="files/0001-fix-isvalidredirect-query-params.patch"
+COMMAND=bash
+SCRIPT=build-oauth2-proxy.sh
+ARGS=oauth2-proxy

@@ -1,0 +1,53 @@
+From 8d03f3662a515945b683b94a54eb534c3ce80a25 Mon Sep 17 00:00:00 2001
+From: lgosling <luizandre.gosling@windriver.com>
+Date: Fri, 29 May 2026 11:03:15 -0300
+Subject: [PATCH] fix: apply redirect regex only to path, not query params
+
+Keystone federation URLs contain absolute URLs in the origin= query
+parameter (e.g. origin=https://...). The invalidRedirectRegex was
+matching :// in the query parameter and incorrectly rejecting safe
+redirects. Fix by applying the regex check only to the path portion
+(before '?').
+
+Signed-off-by: lgosling <luizandre.gosling@windriver.com>
+---
+ pkg/app/redirect/validator.go | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/pkg/app/redirect/validator.go b/pkg/app/redirect/validator.go
+index fd9074e..c5f3364 100644
+--- a/pkg/app/redirect/validator.go
++++ b/pkg/app/redirect/validator.go
+@@ -6,7 +6,6 @@ import (
+ 	"strings"
+ 
+ 	"github.com/oauth2-proxy/oauth2-proxy/v7/pkg/logger"
+-
+ 	util "github.com/oauth2-proxy/oauth2-proxy/v7/pkg/util"
+ )
+ 
+@@ -42,10 +41,18 @@ func (v *validator) IsValidRedirect(redirect string) bool {
+ 	switch {
+ 	case redirect == "":
+ 		// The user didn't specify a redirect.
+-		// In this case, we expect the proxt to fallback to `/`
++		// In this case, we expect the proxy to fallback to `/`
++		return false
++	case strings.HasPrefix(redirect, "/") && !strings.HasPrefix(redirect, "//"):
++		// Only check the path portion (before '?') for invalid patterns.
++		// This allows query parameters to contain absolute URLs, which is
++		// required for Keystone federation redirects (origin= parameter).
++		pathPart := strings.SplitN(redirect, "?", 2)[0]
++		if !invalidRedirectRegex.MatchString(pathPart) {
++			return true
++		}
++		logger.Printf("Rejecting invalid redirect %q: path contains invalid patterns", redirect)
+ 		return false
+-	case strings.HasPrefix(redirect, "/") && !strings.HasPrefix(redirect, "//") && !invalidRedirectRegex.MatchString(redirect):
+-		return true
+ 	case strings.HasPrefix(redirect, "http://") || strings.HasPrefix(redirect, "https://"):
+ 		redirectURL, err := url.Parse(redirect)
+ 		if err != nil {
+-- 
+2.43.0
+
