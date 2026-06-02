@@ -78,7 +78,9 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
             and hook_info.relative_timing == Lc.APP_LIFECYCLE_TIMING_POST
             and hook_info.operation == constants.APP_APPLY_OP
         ):
-            return self.post_apply_operation(context, conductor_obj, app)
+            self.post_apply_operation(context, conductor_obj, app)
+            self.post_apply(context, conductor_obj)
+            return
 
         super(OidcAppLifecycleOperator, self).app_lifecycle_actions(
             context, conductor_obj, app_op, app, hook_info)
@@ -173,6 +175,48 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
         # Apply default configuration
         self._default_oidc_configuration(dbapi_instance)
         LOG.info("OIDC configured and ready to be applied")
+
+    def post_apply(self, context, conductor_obj):
+        """Trigger Keystone federation setup after oidc-auth-apps is applied.
+
+        After oidc-auth-apps is successfully deployed, this hook checks
+        whether oidc-issuer-url is configured as a Kubernetes service
+        parameter. If present, it triggers the keystone server runtime
+        puppet manifest which includes the federation class, creating the
+        IdP, mapping, and protocol resources in Keystone.
+
+        If oidc-issuer-url is not configured (e.g., user provided custom
+        Helm overrides pointing to an external OIDC provider), the puppet
+        trigger is skipped to avoid contradictory state.
+
+        :param context: Request context provided by the conductor.
+        :param conductor_obj: Sysinv conductor manager instance.
+        """
+        dbapi_instance = dbapi.get_instance()
+
+        try:
+            dbapi_instance.service_parameter_get_one(
+                constants.SERVICE_TYPE_KUBERNETES,
+                constants.SERVICE_PARAM_SECTION_KUBERNETES_APISERVER,
+                constants.SERVICE_PARAM_NAME_OIDC_ISSUER_URL,
+            )
+        except exception.NotFound:
+            LOG.info("oidc-issuer-url not configured, skipping "
+                     "Keystone federation trigger")
+            return
+
+        config_dict = {
+            "personalities": [constants.CONTROLLER],
+            "classes": ['openstack::keystone::server::runtime']
+        }
+        config_uuid = conductor_obj._config_update_hosts(
+            context, config_dict['personalities']
+        )
+        conductor_obj._config_apply_runtime_manifest(
+            context, config_uuid, config_dict
+        )
+        LOG.info("Triggered Keystone federation configuration "
+                 "after oidc-auth-apps apply")
 
     def _sync_oidc_client_with_bootstrap_state(self, app_id, dbapi_instance):
         """
