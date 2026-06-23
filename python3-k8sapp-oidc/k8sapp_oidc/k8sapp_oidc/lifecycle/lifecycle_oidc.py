@@ -165,8 +165,6 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
         self._load_kube_config()
         dbapi_instance = dbapi.get_instance()
 
-        self._sync_oidc_client_with_bootstrap_state(app.id, dbapi_instance)
-
         if self._is_oidc_overrides_fully_configured(dbapi_instance):
             # Fully configured locally, apply it
             LOG.info("OIDC ready to be applied")
@@ -217,48 +215,6 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
         )
         LOG.info("Triggered Keystone federation configuration "
                  "after oidc-auth-apps apply")
-
-    def _sync_oidc_client_with_bootstrap_state(self, app_id, dbapi_instance):
-        """
-        Ensure the OIDC client chart is enabled or disabled according to the current bootstrap
-        state of the system.
-
-        In distributed deployments, the floating IP is only assigned after the OIDC client has
-        already started. This can cause the client to be initialized with an invalid network
-        configuration.
-        To avoid this, the OIDC client chart is being disabled during bootstrap and re-enabled
-        after controller-1 unlock completes.
-        """
-
-        # Skip for simplex systems (no floating IP timing issue)
-        system_mode = dbapi_instance.isystem_get_one().system_mode
-        if system_mode == constants.SYSTEM_MODE_SIMPLEX:
-            return
-
-        chart_name = app_constants.HELM_CHART_OIDC_CLIENT
-        namespace = common.HELM_NS_KUBE_SYSTEM
-        enable_key = common.HELM_CHART_ATTR_ENABLED
-        system_overrides = dbapi_instance.helm_override_get(
-            app_id,
-            chart_name,
-            namespace
-        ).system_overrides
-
-        current_enabled = system_overrides.get(enable_key, True)
-        in_bootstrap = os.path.isfile(constants.ANSIBLE_BOOTSTRAP_FLAG)
-        desired_enabled = not in_bootstrap
-
-        # No update needed if state is already correct
-        if current_enabled == desired_enabled:
-            return
-
-        system_overrides[enable_key] = desired_enabled
-        dbapi_instance.helm_override_update(
-            app_id,
-            chart_name,
-            namespace,
-            {'system_overrides': system_overrides}
-        )
 
     def _get_k8s_issuer_url(self, dbapi_instance):
         try:
