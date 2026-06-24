@@ -32,15 +32,24 @@ spec:
       imagePullSecrets:
         - name: default-registry-key
       initContainers:
-        - name: wait-for-oidc-issuer
+        - name: wait-for-dex-port-to-be-ready
           image: {{ .Values.waitForOidcIssuer.image }}
           command:
             - sh
             - -c
             - |
+              # Strip scheme
+              HOSTPORT=$(echo "$OIDC_ISSUER" | cut -d'/' -f3)
+              # IPv6: [host]:port
+              if echo "$HOSTPORT" | grep -q '\['; then
+                HOST=$(echo "$HOSTPORT" | cut -d']' -f1 | cut -d'[' -f2)
+                PORT=$(echo "$HOSTPORT" | cut -d']' -f2 | cut -d':' -f2)
+              else
+                HOST=$(echo "$HOSTPORT" | cut -d':' -f1)
+                PORT=$(echo "$HOSTPORT" | cut -d':' -f2)
+              fi
               for i in $(seq 1 300); do
-                wget -q --spider --no-check-certificate \
-                  "${OIDC_ISSUER}/.well-known/openid-configuration" && exit 0
+                nc -z -w5 $HOST $PORT && exit 0
                 sleep 2
               done
               exit 1
