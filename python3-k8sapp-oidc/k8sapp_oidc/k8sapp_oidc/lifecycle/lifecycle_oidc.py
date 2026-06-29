@@ -75,8 +75,25 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
             hook_info.lifecycle_type == Lc.APP_LIFECYCLE_TYPE_OPERATION
             and hook_info.relative_timing == Lc.APP_LIFECYCLE_TIMING_POST
             and hook_info.operation == constants.APP_APPLY_OP
+            # Only trigger federation setup if the apply succeeded;
+            # a failed apply should not attempt Keystone configuration.
+            and hook_info.extra.get(Lc.APP_APPLIED)
         ):
             self.post_apply_operation(context, conductor_obj, app)
+            self.post_apply(context, conductor_obj)
+            return
+
+        if (
+            hook_info.lifecycle_type == Lc.APP_LIFECYCLE_TYPE_MANIFEST
+            and hook_info.relative_timing == Lc.APP_LIFECYCLE_TIMING_POST
+            and hook_info.operation == constants.APP_APPLY_OP
+            and hook_info.extra.get(Lc.MANIFEST_APPLIED)
+        ):
+            self.post_apply_operation(context, conductor_obj, app)
+            # During upgrades (app update), operation/post does not fire,
+            # so also attempt post_apply here. If conductor_obj is None
+            # (which it always is for manifest/post), this will create a
+            # flag file for the conductor periodic audit to pick up.
             self.post_apply(context, conductor_obj)
             return
 
@@ -193,6 +210,12 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
         Helm overrides pointing to an external OIDC provider), the puppet
         trigger is skipped to avoid contradictory state.
 
+        This hook is called from operation/post (fresh install, re-apply)
+        where conductor_obj is available for direct puppet trigger. During
+        upgrades, operation/post does not fire, so manifest/post creates a
+        flag file that the conductor periodic audit picks up once the
+        system is stable.
+
         :param context: Request context provided by the conductor.
         :param conductor_obj: Sysinv conductor manager instance.
         """
@@ -209,18 +232,35 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
                      "Keystone federation trigger")
             return
 
-        config_dict = {
-            "personalities": [constants.CONTROLLER],
-            "classes": ['openstack::keystone::server::runtime']
-        }
-        config_uuid = conductor_obj._config_update_hosts(
-            context, config_dict['personalities']
-        )
-        conductor_obj._config_apply_runtime_manifest(
-            context, config_uuid, config_dict
-        )
-        LOG.info("Triggered Keystone federation configuration "
-                 "after oidc-auth-apps apply")
+        if conductor_obj is not None:
+            # Direct conductor call (fresh install / re-apply via
+            # operation/post hook)
+            config_dict = {
+                "personalities": [constants.CONTROLLER],
+                "classes": ['openstack::keystone::server::runtime']
+            }
+            config_uuid = conductor_obj._config_update_hosts(
+                context, config_dict['personalities']
+            )
+            conductor_obj._config_apply_runtime_manifest(
+                context, config_uuid, config_dict
+            )
+            LOG.info("Triggered Keystone federation configuration "
+                     "after oidc-auth-apps apply")
+        else:
+            # Conductor unavailable (e.g., during upgrade activate).
+            # Create a flag file so the conductor periodic audit
+            # (_controller_config_active_apply) triggers the puppet
+            # manifest once the system is stable.
+            try:
+                with open(constants.FEDERATION_CONFIG_REQUIRED, 'w'):
+                    pass
+                LOG.info("Created deferred federation config flag %s "
+                         "for conductor periodic audit"
+                         % constants.FEDERATION_CONFIG_REQUIRED)
+            except Exception as e:
+                LOG.error("Failed to create federation config flag %s: %s"
+                          % (constants.FEDERATION_CONFIG_REQUIRED, e))
 
     def _get_k8s_issuer_url(self, dbapi_instance):
         try:
