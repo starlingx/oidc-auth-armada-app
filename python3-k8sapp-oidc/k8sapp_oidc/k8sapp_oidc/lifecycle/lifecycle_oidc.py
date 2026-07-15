@@ -116,6 +116,7 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
 
         # Fully configured locally, apply it
         if self._is_oidc_overrides_fully_configured(dbapi_instance):
+            self._validate_dex_tls_secret(dbapi_instance)
             return
 
         # Do not apply OIDC locally on subclouds if not fully configured,
@@ -939,7 +940,8 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
             # Find the volume name mounted at /etc/dex/tls
             tls_volume_name = None
             for vm in volume_mounts:
-                if vm.get('mountPath') == '/etc/dex/tls':
+                mount_path = vm.get('mountPath', '').rstrip('/')
+                if mount_path == '/etc/dex/tls':
                     tls_volume_name = vm.get('name')
                     break
 
@@ -966,6 +968,49 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
             raise exception.SysinvException(
                 "Failed to determine dex TLS secret name from overrides"
             ) from e
+
+    def _validate_dex_tls_secret(self, dbapi_instance):
+        """Validate that the Dex TLS secret contains all required fields.
+
+        Reads the Kubernetes secret used by Dex for TLS and verifies that
+        ca.crt, tls.crt, and tls.key are all present. Raises an exception
+        to block the apply if any field is missing.
+
+        :param sysinv.db.api.DbApi dbapi_instance: Sysinv database API instance.
+        :raises SysinvException: If the secret is missing required fields.
+        """
+        secret_name = self._get_dex_tls_secret_name(dbapi_instance)
+        required_fields = ('ca.crt', 'tls.crt', 'tls.key')
+
+        try:
+            k8s_v1_client = client.CoreV1Api()
+            secret = k8s_v1_client.read_namespaced_secret(
+                name=secret_name,
+                namespace=common.HELM_NS_KUBE_SYSTEM,
+            )
+        except Exception as e:
+            raise exception.SysinvException(
+                "Failed to read Dex TLS secret '%s': %s"
+                % (secret_name, e)
+            ) from e
+
+        data = secret.data or {}
+        missing = [f for f in required_fields if not data.get(f)]
+        if missing:
+            LOG.error(
+                "Dex TLS secret '%s' is missing required fields: %s. "
+                "The dex server certificate must contain ca.crt, tls.crt, "
+                "and tls.key.",
+                secret_name, ', '.join(missing),
+            )
+            raise exception.SysinvException(
+                "Dex TLS secret '%s' is missing required fields: %s. "
+                "The dex server certificate must contain ca.crt, tls.crt, "
+                "and tls.key."
+                % (secret_name, ', '.join(missing))
+            )
+
+        LOG.info("Dex TLS secret '%s' validated successfully", secret_name)
 
     def _get_oidc_client_id(self, dbapi_instance):
         try:
