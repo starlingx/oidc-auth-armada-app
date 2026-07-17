@@ -1,0 +1,17 @@
+# Trixie (Python 3.13) test requirements
+hacking>=6.1.0 # Apache-2.0
+astroid
+bandit<1.7.2;python_version>="3.0"
+coverage>=3.6
+fixtures>=3.0.0 # Apache-2.0/BSD
+mock>=2.0.0 # BSD
+python-subunit>=0.0.18
+requests-mock>=0.6.0 # Apache-2.0
+oslotest>=3.2.0 # Apache-2.0
+stestr>=1.0.0 # Apache-2.0
+testtools!=1.2.0,>=0.9.36
+isort>=5.0.0
+pylint
+pycryptodomex
+pytest
+pytest-cov

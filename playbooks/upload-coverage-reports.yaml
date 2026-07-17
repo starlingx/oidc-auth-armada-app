@@ -1,0 +1,23 @@
+- hosts: all
+  tasks:
+    - name: Check if coverage reports exist
+      stat:
+        path: "{{ zuul.project.src_dir }}/python3-k8sapp-oidc/k8sapp_oidc/UTCoverage/"
+      register: coverage_dir
+
+    - name: Upload coverage reports
+      synchronize:
+        src: "{{ zuul.project.src_dir }}/python3-k8sapp-oidc/k8sapp_oidc/UTCoverage/"
+        dest: "{{ zuul.executor.log_root }}/coverage/"
+        mode: pull
+      when: coverage_dir.stat.exists
+      failed_when: false
+
+    - name: Return coverage report URL
+      zuul_return:
+        data:
+          zuul:
+            artifacts:
+              - name: "Coverage Report"
+                url: "coverage/htmlcov/index.html"
+      when: coverage_dir.stat.exists
