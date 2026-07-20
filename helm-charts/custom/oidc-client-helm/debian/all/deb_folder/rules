@@ -14,6 +14,11 @@ export CHART_VERSION = $(RELEASE).$(REVISION)
 
 override_dh_auto_build:
 
+	# Substitute @OS_CODENAME@ in values
+	$(eval OS_CODENAME ?= $(shell lsb_release -cs))
+	sed -i -e 's|@OS_CODENAME@|$(OS_CODENAME)|g' \
+		oidc-client/values.yaml
+
 	mkdir -p build
 
 	# Copy oidc-client items.
