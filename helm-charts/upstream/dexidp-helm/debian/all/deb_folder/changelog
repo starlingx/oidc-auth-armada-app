@@ -1,3 +1,9 @@
+dexidp-helm (0.24-1) unstable; urgency=medium
+
+  * Upgrade of wrapped dexidp v0.24.1
+
+ -- Marcelo Melo <Marcelo.CorreadeAraujoPedrosadeMelo@windriver.com>  Tue, 08 Jul 2026 20:44:22 +0000
+
 dexidp-helm (0.24-0) unstable; urgency=medium
 
   * Upgrade of wrapped dexidp v0.24.0
