@@ -17,3 +17,7 @@ override_dh_auto_install:
 	python3 setup.py bdist_wheel \
 		--universal \
 		-d $(ROOT)/wheels
+	install -d -m 755 $(ROOT)/usr/bin
+	install -m 755 scripts/oidc-dc-sync $(ROOT)/usr/bin/oidc-dc-sync
+	install -d -m 755 $(ROOT)/etc/cron.d
+	install -m 644 scripts/oidc-dc-sync.cron $(ROOT)/etc/cron.d/oidc-dc-sync

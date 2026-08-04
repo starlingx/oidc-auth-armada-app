@@ -1,0 +1,98 @@
+#!/bin/bash
+#
+# Copyright (c) 2026 Wind River Systems, Inc.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# oidc-dc-sync - Periodic check for subcloud changes.
+#
+# On a DC system controller with centralized oidc-auth-apps, this
+# script detects subcloud additions, removals, or updates and
+# triggers a re-apply of oidc-auth-apps so that Dex redirect URIs
+# are updated for the oidc-login kubectl plugin.
+#
+# Intended to run as a linux cron job (e.g., every 15 minutes):
+#   */15 * * * * root /usr/bin/oidc-dc-sync
+#
+# The script is a no-op when:
+#   - Not on a system controller
+#   - oidc-auth-apps is not applied
+#   - The managed subcloud list has not changed since last run
+#
+# Change detection uses an MD5 hash of managed subcloud names and
+# their dcmanager updated-at timestamps. This catches adds, removes,
+# and any subcloud record update (OAM change, rehome, etc.) without
+# triggering on routine audits that don't modify the record.
+
+SCRIPT_NAME="oidc-dc-sync"
+STATE_FILE="/var/run/${SCRIPT_NAME}.md5"
+LOG_TAG="${SCRIPT_NAME}"
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+log_info() {
+    logger -t "${LOG_TAG}" -p user.info "$*"
+}
+
+log_error() {
+    logger -t "${LOG_TAG}" -p user.err "$*"
+}
+
+# Source platform environment and credentials
+. /etc/platform/platform.conf 2>/dev/null
+. /etc/platform/openrc 2>/dev/null
+
+# Only run on system controller
+if [ "${distributed_cloud_role}" != "systemcontroller" ]; then
+    exit 0
+fi
+
+# Only run on the active controller
+if ! sm-query service management-ip | grep -q "enabled-active"; then
+    exit 0
+fi
+
+# Only run if oidc-auth-apps is applied
+APP_STATUS=$(system application-show oidc-auth-apps --column status --format value 2>/dev/null)
+if [ "${APP_STATUS}" != "applied" ]; then
+    exit 0
+fi
+
+# Build a fingerprint of managed subclouds using default columns
+# plus updated_at. This captures adds, removes, and any record
+# update (OAM change, rehome, state change, etc.)
+CURRENT_FINGERPRINT=$(dcmanager subcloud list \
+    --column name --column management --column availability \
+    --column "deploy status" --column sync --column updated_at \
+    --format value 2>/dev/null \
+    | grep " managed " \
+    | sort)
+
+CURRENT_HASH=$(echo "${CURRENT_FINGERPRINT}" | md5sum | awk '{print $1}')
+
+# Compare with previous hash
+if [ -f "${STATE_FILE}" ]; then
+    PREVIOUS_HASH=$(cat "${STATE_FILE}")
+else
+    PREVIOUS_HASH=""
+fi
+
+if [ "${CURRENT_HASH}" = "${PREVIOUS_HASH}" ]; then
+    # No change
+    exit 0
+fi
+
+# Something changed — trigger reapply
+log_info "Subcloud fingerprint changed, triggering oidc-auth-apps reapply"
+
+system application-apply oidc-auth-apps 2>&1 | logger -t "${LOG_TAG}"
+RC=$?
+
+if [ ${RC} -eq 0 ]; then
+    # Save new hash only on successful apply trigger
+    echo "${CURRENT_HASH}" > "${STATE_FILE}"
+    log_info "oidc-auth-apps reapply triggered successfully"
+else
+    log_error "Failed to trigger oidc-auth-apps reapply (rc=${RC})"
+fi
+
+exit ${RC}

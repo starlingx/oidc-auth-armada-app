@@ -1,0 +1,7 @@
+# /etc/cron.d/oidc-dc-sync
+#
+# Periodically check if the subcloud list changed and reapply
+# oidc-auth-apps to update Dex redirect URIs for oidc-login.
+# Only active on DC system controllers with oidc-auth-apps applied.
+#
+*/15 * * * * root /usr/bin/oidc-dc-sync
