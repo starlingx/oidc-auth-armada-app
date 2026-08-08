@@ -80,6 +80,26 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
             self.post_apply(context, conductor_obj)
             return
 
+        if (
+            hook_info.lifecycle_type == Lc.APP_LIFECYCLE_TYPE_MANIFEST
+            and hook_info.relative_timing == Lc.APP_LIFECYCLE_TIMING_POST
+            and hook_info.operation == constants.APP_APPLY_OP
+            and hook_info.extra.get(Lc.MANIFEST_APPLIED)
+        ):
+            # Covers auto-update during platform upgrade where the
+            # operation post hook is not fired.
+            self.post_apply_operation(context, conductor_obj, app)
+            return
+
+        if (
+            hook_info.lifecycle_type == Lc.APP_LIFECYCLE_TYPE_OPERATION
+            and hook_info.relative_timing == Lc.APP_LIFECYCLE_TIMING_POST
+            and hook_info.operation == constants.APP_RESTORE
+        ):
+            LOG.info("Regenerating OIDC login config after restore")
+            self.post_apply_operation(context, conductor_obj, app)
+            return
+
         super(OidcAppLifecycleOperator, self).app_lifecycle_actions(
             context, conductor_obj, app_op, app, hook_info)
 

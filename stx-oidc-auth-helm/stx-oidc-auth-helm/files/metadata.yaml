@@ -23,6 +23,7 @@ behavior:
       - type: host-delete
         filters:
           - personality: controller
+      - type: usm-upgrade-complete
       - type: on-demand-reapply
 
 dependent_apps:
