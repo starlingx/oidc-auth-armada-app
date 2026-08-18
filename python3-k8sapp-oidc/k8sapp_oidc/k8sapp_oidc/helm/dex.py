@@ -4,12 +4,18 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+from oslo_log import log as logging
+
 from k8sapp_oidc.common import constants as app_constants
 from k8sapp_oidc.helm.dex_base import DexBaseHelm
 from k8sapp_oidc.helm.dex_base import DEX_TLS_VERSION_MAP
+from k8sapp_oidc.helm.dex_base import get_subcloud_oam_floating_ips
+from k8sapp_oidc.helm.dex_base import OIDC_LOGIN_CALLBACK_PORT
 
 from sysinv.common import exception
 from sysinv.helm import common
+
+LOG = logging.getLogger(__name__)
 
 
 class Dex(DexBaseHelm):
@@ -25,12 +31,37 @@ class Dex(DexBaseHelm):
 
         oam_address = self._format_url_address(self._get_oam_address())
 
+        redirect_uris = [
+            "https://%s:%s/callback" % (oam_address, self.OIDC_CLIENT_NODE_PORT),
+            "https://%s:%s/oauth2/callback" % (oam_address, self.OAUTH2_PROXY_PORT),
+        ]
+
+        # On a DC system controller with centralized OIDC, add redirect
+        # URIs for the oidc-login kubectl plugin callback listener.
+        # The plugin listens on port 8000 and the redirect must match
+        # the address the user's browser resolves to:
+        #   - localhost:8000 — remote_cli from a workstation
+        #   - <system_controller_OAM>:8000 — local CLI on the central
+        #   - <subcloud_OAM>:8000 — local CLI on a subcloud
+        if self._is_distributed_cloud_role_system_controller():
+            redirect_uris.append(
+                "http://localhost:%s" % OIDC_LOGIN_CALLBACK_PORT)
+            redirect_uris.append(
+                "http://%s:%s" % (oam_address, OIDC_LOGIN_CALLBACK_PORT))
+
+            subcloud_oam_ips = get_subcloud_oam_floating_ips()
+            for sc_oam_ip in subcloud_oam_ips:
+                sc_address = self._format_url_address(sc_oam_ip)
+                redirect_uris.append(
+                    "http://%s:%s" % (sc_address, OIDC_LOGIN_CALLBACK_PORT)
+                )
+            if subcloud_oam_ips:
+                LOG.info("Added %d subcloud redirect URIs to dex "
+                         "static client", len(subcloud_oam_ips))
+
         oidc_client = {
             'id': self._get_client_id(),
-            'redirectURIs': [
-                "https://%s:%s/callback" % (oam_address, self.OIDC_CLIENT_NODE_PORT),
-                "https://%s:%s/oauth2/callback" % (oam_address, self.OAUTH2_PROXY_PORT),
-            ],
+            'redirectURIs': redirect_uris,
             'name': 'STX OIDC Client app',
             'secret': self._get_client_secret()
         }

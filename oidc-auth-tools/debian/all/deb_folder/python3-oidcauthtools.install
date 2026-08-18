@@ -1,3 +1,5 @@
 usr/bin/oidc-auth
+usr/bin/oidc-dc-sync
+etc/cron.d/oidc-dc-sync
 usr/lib/python3/dist-packages/oidcauthtools-1.0.0.egg-info/*
 usr/lib/python3/dist-packages/oidcauthtools/*
