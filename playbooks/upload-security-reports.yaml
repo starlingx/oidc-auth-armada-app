@@ -1,0 +1,14 @@
+- hosts: all
+  tasks:
+    - name: Check if security report exists
+      stat:
+        path: "{{ zuul.project.src_dir }}/python3-k8sapp-oidc/k8sapp_oidc/UTCoverage/security_report.txt"
+      register: security_report
+
+    - name: Upload security report
+      synchronize:
+        src: "{{ zuul.project.src_dir }}/python3-k8sapp-oidc/k8sapp_oidc/UTCoverage/security_report.txt"
+        dest: "{{ zuul.executor.log_root }}/security_report.txt"
+        mode: pull
+      when: security_report.stat.exists
+      failed_when: false
