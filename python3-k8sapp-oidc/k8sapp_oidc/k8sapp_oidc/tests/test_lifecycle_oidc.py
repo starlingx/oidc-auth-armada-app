@@ -328,6 +328,76 @@ class TestPostApplyOperation(unittest.TestCase):
         mock_dump.assert_called_once_with(mock_db)
 
 
+class TestPostApplyIdempotency(unittest.TestCase):
+    """Tests for post_apply federation trigger idempotency.
+
+    Verifies that the Keystone federation runtime manifest is only
+    triggered when federation is not already configured, avoiding
+    redundant config target churn and transient 250.001 alarms on
+    auto-reapply (CGTS-104290).
+    """
+
+    def setUp(self):
+        self.operator = OidcAppLifecycleOperator.__new__(
+            OidcAppLifecycleOperator
+        )
+        self.context = mock.MagicMock()
+        self.conductor = mock.MagicMock()
+
+    @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.os.path.isfile')
+    @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.dbapi')
+    def test_skips_trigger_when_federation_already_configured(
+            self, mock_dbapi_mod, mock_isfile):
+        # initial_config_complete present, oidc-issuer-url present,
+        # federation marker present -> should skip
+        def isfile_side_effect(path):
+            return True
+        mock_isfile.side_effect = isfile_side_effect
+        mock_dbapi_mod.get_instance.return_value = mock.MagicMock()
+
+        self.operator.post_apply(self.context, self.conductor)
+
+        # Neither the direct trigger nor the flag path should run
+        self.conductor._config_update_hosts.assert_not_called()
+        self.conductor._config_apply_runtime_manifest.assert_not_called()
+
+    @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.os.path.isfile')
+    @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.dbapi')
+    def test_triggers_when_federation_marker_absent(
+            self, mock_dbapi_mod, mock_isfile):
+        # initial_config_complete present (True), federation marker
+        # absent (False) -> should trigger via conductor
+        from k8sapp_oidc.lifecycle import lifecycle_oidc
+
+        def isfile_side_effect(path):
+            if path == lifecycle_oidc.KEYSTONE_FEDERATION_MARKER:
+                return False
+            return True
+        mock_isfile.side_effect = isfile_side_effect
+        mock_dbapi_mod.get_instance.return_value = mock.MagicMock()
+        self.conductor._config_update_hosts.return_value = 'config-uuid'
+
+        self.operator.post_apply(self.context, self.conductor)
+
+        self.conductor._config_update_hosts.assert_called_once()
+        self.conductor._config_apply_runtime_manifest.assert_called_once()
+
+    @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.os.path.isfile')
+    @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.dbapi')
+    def test_skips_when_oidc_issuer_url_not_configured(
+            self, mock_dbapi_mod, mock_isfile):
+        from sysinv.common import exception
+        mock_isfile.return_value = True
+        db = mock.MagicMock()
+        db.service_parameter_get_one.side_effect = exception.NotFound()
+        mock_dbapi_mod.get_instance.return_value = db
+
+        self.operator.post_apply(self.context, self.conductor)
+
+        self.conductor._config_update_hosts.assert_not_called()
+        self.conductor._config_apply_runtime_manifest.assert_not_called()
+
+
 class TestValidateDexTlsSecret(unittest.TestCase):
     """Tests for _validate_dex_tls_secret."""
 

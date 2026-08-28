@@ -43,6 +43,20 @@ CERTIFICATE_NAMESPACE = common.HELM_NS_KUBE_SYSTEM
 CERTIFICATE_PLURAL = "certificates"
 CERTIFICATE_NAME = "oidc-auth-apps-certificate"
 
+# Artifact created by the openstack::keystone::federation puppet class when
+# federation is configured. Used as a run-once marker: once federation has
+# been set up, subsequent auto-reapplies of oidc-auth-apps skip re-triggering
+# the runtime manifest, which would otherwise churn the host config target and
+# raise a transient config-out-of-date (250.001) alarm.
+#
+# Note on reconfiguration: because the trigger is skipped whenever this marker
+# exists, changing federation parameters after initial setup is NOT applied
+# via an oidc-auth-apps re-apply. Reconfiguration is handled through the
+# service-parameter path (`system service-parameter-apply identity`), which
+# triggers openstack::keystone::server::runtime directly regardless of this
+# marker. This marker only short-circuits the app-reapply trigger.
+KEYSTONE_FEDERATION_MARKER = "/etc/keystone/dex_mapping.json"
+
 
 class OidcAppLifecycleOperator(base.AppLifecycleOperator):
     def app_lifecycle_actions(self, context, conductor_obj, app_op, app,
@@ -259,6 +273,25 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
         except exception.NotFound:
             LOG.info("oidc-issuer-url not configured, skipping "
                      "Keystone federation trigger")
+            return
+
+        # Guard against re-running: if the federation marker exists,
+        # federation has already been set up, so skip the trigger.
+        # oidc-auth-apps is auto-reapplied on events such as host
+        # availability changes; re-triggering the runtime manifest on every
+        # apply churns the host config target and raises a transient
+        # config-out-of-date (250.001) alarm, even though the federation
+        # puppet class is a no-op when the resources already exist. The
+        # marker is created by the federation puppet class, so its presence
+        # indicates federation setup already ran.
+        #
+        # Reconfiguration is applied via `system service-parameter-apply identity`,
+        # which triggers the keystone runtime manifest directly and is not gated
+        # by this marker.
+        if os.path.isfile(KEYSTONE_FEDERATION_MARKER):
+            LOG.info("Keystone federation marker %s present; "
+                     "skipping federation trigger (already set up)"
+                     % KEYSTONE_FEDERATION_MARKER)
             return
 
         if conductor_obj is not None:
