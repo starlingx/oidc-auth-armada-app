@@ -36,19 +36,23 @@ class Dex(DexBaseHelm):
             "https://%s:%s/oauth2/callback" % (oam_address, self.OAUTH2_PROXY_PORT),
         ]
 
-        # On a DC system controller with centralized OIDC, add redirect
-        # URIs for the oidc-login kubectl plugin callback listener.
-        # The plugin listens on port 8000 and the redirect must match
-        # the address the user's browser resolves to:
-        #   - localhost:8000 — remote_cli from a workstation
-        #   - <system_controller_OAM>:8000 — local CLI on the central
-        #   - <subcloud_OAM>:8000 — local CLI on a subcloud
-        if self._is_distributed_cloud_role_system_controller():
-            redirect_uris.append(
-                "http://localhost:%s" % OIDC_LOGIN_CALLBACK_PORT)
-            redirect_uris.append(
-                "http://%s:%s" % (oam_address, OIDC_LOGIN_CALLBACK_PORT))
+        # The oidc-login kubectl plugin used by the STX CLI listens on
+        # port 8000 for the OAuth2 callback. Register both the local OAM
+        # and localhost redirect URIs on every system so that local CLI
+        # oidc-login (via OAM IP or localhost) works on a fresh install
+        # without manual user_overrides.
+        redirect_uris.append(
+            "http://%s:%s" % (oam_address, OIDC_LOGIN_CALLBACK_PORT))
+        redirect_uris.append(
+            "http://localhost:%s" % OIDC_LOGIN_CALLBACK_PORT)
 
+        # On a DC system controller with centralized OIDC, add additional
+        # redirect URIs for the oidc-login kubectl plugin callback listener.
+        # The redirect must match the address the user's browser resolves to:
+        #   - <subcloud_OAM>:8000 — local CLI on a subcloud
+        # (the local <system_controller_OAM>:8000 and localhost:8000 are
+        # already added above)
+        if self._is_distributed_cloud_role_system_controller():
             subcloud_oam_ips = get_subcloud_oam_floating_ips()
             for sc_oam_ip in subcloud_oam_ips:
                 sc_address = self._format_url_address(sc_oam_ip)

@@ -61,7 +61,8 @@ class DexTestCase(test_plugins.K8SAppOidcAppMixin,
             raise ValueError("Too many addresses in returned list")
 
     def test_static_clients_no_dc(self):
-        """On a non-DC system, only systemcontroller OAM redirectURIs."""
+        """On a non-DC system, base redirectURIs plus local OAM and
+        localhost :8000."""
         overrides = self.operator.get_helm_chart_overrides(
             app_constants.HELM_CHART_DEX,
             cnamespace=common.HELM_NS_KUBE_SYSTEM)
@@ -70,10 +71,14 @@ class DexTestCase(test_plugins.K8SAppOidcAppMixin,
         self.assertEqual(len(static_clients), 1)
 
         redirect_uris = static_clients[0]['redirectURIs']
-        # Should have exactly 2 URIs: callback + oauth2/callback
-        self.assertEqual(len(redirect_uris), 2)
+        # Should have exactly 4 URIs: callback + oauth2/callback +
+        # the local OAM oidc-login callback (port 8000) + localhost:8000
+        self.assertEqual(len(redirect_uris), 4)
         self.assertTrue(redirect_uris[0].endswith(':30555/callback'))
         self.assertTrue(redirect_uris[1].endswith(':5000/oauth2/callback'))
+        self.assertTrue(redirect_uris[2].startswith('http://'))
+        self.assertTrue(redirect_uris[2].endswith(':8000'))
+        self.assertIn('http://localhost:8000', redirect_uris)
 
     @mock.patch.object(dex_module, 'get_subcloud_oam_floating_ips')
     def test_static_clients_dc_system_controller(self, mock_get_sc_ips):
