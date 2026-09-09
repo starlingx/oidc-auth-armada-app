@@ -664,8 +664,9 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
                                 "filter": "(objectClass=posixAccount)",
                                 "username": "uid",
                                 "idAttr": "DN",
-                                "emailAttr": "uid",
-                                "nameAttr": "gecos",
+                                "emailAttr": "mail",
+                                "nameAttr": "cn",
+                                "preferredUsernameAttr": "uid",
                             },
                             "groupSearch": {
                                 "baseDN": "ou=Group,dc=cgcs,dc=local",
