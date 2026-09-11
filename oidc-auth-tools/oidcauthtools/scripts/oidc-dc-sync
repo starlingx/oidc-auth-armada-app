@@ -46,8 +46,12 @@ if [ "${distributed_cloud_role}" != "systemcontroller" ]; then
     exit 0
 fi
 
-# Only run on the active controller
-if ! sm-query service management-ip | grep -q "enabled-active"; then
+# Only run on the active controller.
+# Use sm-dump (not sm-query) because sm-query reads /var/run/sm/sm.db
+# which is not reliably available in this context, and the SM service
+# is named management-ipv4/management-ipv6 rather than management-ip.
+# Grepping "management-ip" matches both IPv4 and IPv6 service names.
+if ! sm-dump 2>/dev/null | grep "management-ip" | grep -q "enabled-active"; then
     exit 0
 fi
 
