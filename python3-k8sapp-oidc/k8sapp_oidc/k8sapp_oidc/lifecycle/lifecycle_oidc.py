@@ -88,6 +88,15 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
             return self.pre_apply_operation(context, conductor_obj, app)
 
         if (
+            hook_info.lifecycle_type == Lc.APP_LIFECYCLE_TYPE_RESOURCE
+            and hook_info.relative_timing == Lc.APP_LIFECYCLE_TIMING_PRE
+            and hook_info.operation == constants.APP_APPLY_OP
+        ):
+            # Heals the stale local-LDAP connector on resource/pre apply, firing on manual
+            # and automatic upgrade apply.
+            return self.pre_apply_resource(context, conductor_obj, app)
+
+        if (
             hook_info.lifecycle_type == Lc.APP_LIFECYCLE_TYPE_OPERATION
             and hook_info.relative_timing == Lc.APP_LIFECYCLE_TIMING_POST
             and hook_info.operation == constants.APP_APPLY_OP
@@ -221,6 +230,19 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
         # Apply default configuration
         self._default_oidc_configuration(dbapi_instance)
         LOG.info("OIDC configured and ready to be applied")
+
+    def pre_apply_resource(self, context, conductor_obj, app):
+        """Resource/pre apply hook: heal the persisted Dex connector.
+
+        Emitted by AppOperator.perform_app_apply, so it fires on both manual and
+        automatic upgrade applies. Runs after user_overrides are preserved and before
+        fluxcd overrides are written. Delegates to _reconcile_dex_connector_defaults,
+        which adds missing preferredUsernameAttr on upgraded systems so Dex emits a
+        non-empty preferred_username claim (restoring the federated_users mapping and
+        Horizon Platform tabs).
+        """
+        dbapi_instance = dbapi.get_instance()
+        self._reconcile_dex_connector_defaults(dbapi_instance)
 
     def post_apply(self, context, conductor_obj):
         """Trigger Keystone federation setup after oidc-auth-apps is applied.
@@ -649,27 +671,35 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
                 "connectors": [
                     {
                         "type": "ldap",
-                        "name": "ldap-1",
-                        "id": "ldap-1",
+                        "name": app_constants.DEFAULT_DEX_LDAP_CONNECTOR_ID,
+                        "id": app_constants.DEFAULT_DEX_LDAP_CONNECTOR_ID,
                         "config": {
                             "host": f"{host}:636",
                             "rootCA": "/etc/ssl/certs/adcert/ca.crt",
                             "insecureNoSSL": False,
                             "insecureSkipVerify": False,
-                            "bindDN": "CN=ldapadmin,DC=cgcs,DC=local",
+                            "bindDN": app_constants.DEFAULT_DEX_LDAP_BIND_DN,
                             "bindPW": ldap_pwd,
                             "usernamePrompt": "Username",
                             "userSearch": {
-                                "baseDN": "ou=People,dc=cgcs,dc=local",
+                                "baseDN":
+                                    app_constants.DEFAULT_DEX_LDAP_BASE_DN,
                                 "filter": "(objectClass=posixAccount)",
-                                "username": "uid",
-                                "idAttr": "DN",
-                                "emailAttr": "mail",
-                                "nameAttr": "cn",
-                                "preferredUsernameAttr": "uid",
+                                "username":
+                                    app_constants.DEFAULT_DEX_LDAP_USERNAME_ATTR,
+                                "idAttr":
+                                    app_constants.DEFAULT_DEX_LDAP_ID_ATTR,
+                                "emailAttr":
+                                    app_constants.DEFAULT_DEX_LDAP_EMAIL_ATTR,
+                                "nameAttr":
+                                    app_constants.DEFAULT_DEX_LDAP_NAME_ATTR,
+                                "preferredUsernameAttr":
+                                    app_constants
+                                    .DEFAULT_DEX_LDAP_PREFERRED_USERNAME_ATTR,
                             },
                             "groupSearch": {
-                                "baseDN": "ou=Group,dc=cgcs,dc=local",
+                                "baseDN":
+                                    app_constants.DEFAULT_DEX_GROUP_BASE_DN,
                                 "filter": "(objectClass=posixGroup)",
                                 "userMatchers": [
                                     {
@@ -677,7 +707,8 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
                                         "groupAttr": "memberUid"
                                     }
                                 ],
-                                "nameAttr": "cn",
+                                "nameAttr":
+                                    app_constants.DEFAULT_DEX_LDAP_NAME_ATTR,
                             },
                         },
                     }
@@ -927,6 +958,132 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
             pass
         except Exception as e:
             LOG.warning("Failed to strip TLS from dex user_overrides: %s", e)
+
+    def _reconcile_dex_connector_defaults(self, dbapi_instance):
+        """Add preferredUsernameAttr to the default local-LDAP Dex connector on
+        upgraded systems.
+
+        Older releases generated the connector without preferredUsernameAttr. On
+        upgrade, user_overrides are preserved verbatim so the fixed generator is
+        skipped, leaving an empty preferred_username that hides the Horizon
+        Platform tabs for federated users.
+
+        Only patches a connector matching the StarlingX default fingerprint (id,
+        userSearch baseDN, bindDN); customer connectors are left untouched.
+        Additive-only: adds preferredUsernameAttr but never rewrites
+        emailAttr/nameAttr in place (that could empty the email claim and break
+        the HTTP_OIDC_EMAIL group rules). Idempotent: no write once the attribute
+        is present.
+
+        For logging, benign paths (no override yet, attribute already present)
+        return quietly; malformed-data paths and customer-connector skips log,
+        so a skipped heal is never silent.
+        """
+        try:
+            db_app = dbapi_instance.kube_app_get(constants.HELM_APP_OIDC_AUTH)
+        except Exception as e:
+            LOG.warning("Dex connector reconciliation skipped: could not get "
+                        "kube app %s: %s", constants.HELM_APP_OIDC_AUTH, e)
+            return
+
+        try:
+            helm_override = dbapi_instance.helm_override_get(
+                app_id=db_app.id,
+                name=app_constants.HELM_CHART_DEX,
+                namespace=common.HELM_NS_KUBE_SYSTEM,
+            )
+        except exception.NotFound:
+            # No dex override yet -> fresh-generate path handles it. Expected.
+            return
+        except Exception as e:
+            LOG.warning("Failed to read dex user_overrides for connector "
+                        "reconciliation: %s", e)
+            return
+
+        if not helm_override.user_overrides:
+            # No connector persisted -> fresh-generate path handles it. Expected.
+            return
+
+        try:
+            overrides = yaml.safe_load(helm_override.user_overrides)
+        except Exception as e:
+            LOG.warning("Failed to parse dex user_overrides for connector "
+                        "reconciliation: %s", e)
+            return
+
+        # overrides exist but are not a mapping -> malformed. Log so a
+        # skipped heal is not invisible when troubleshooting.
+        if not isinstance(overrides, dict):
+            LOG.warning("Dex connector reconciliation skipped: user_overrides "
+                        "is not a mapping (got %s); leaving untouched.",
+                        type(overrides).__name__)
+            return
+
+        connectors = overrides.get('config', {}).get('connectors', [])
+
+        # connectors present but not a list -> malformed override shape.
+        if not isinstance(connectors, list):
+            LOG.warning("Dex connector reconciliation skipped: connectors is "
+                        "not a list (got %s); leaving untouched.",
+                        type(connectors).__name__)
+            return
+
+        # If there is more than one connector, or the single connector does not
+        # match the default fingerprint, do not touch anything for customer settings safety.
+        if len(connectors) != 1:
+            LOG.info("Dex connector reconciliation skipped: %d connectors "
+                     "present (expected the single default connector); "
+                     "leaving user_overrides untouched.", len(connectors))
+            return
+
+        connector = connectors[0]
+        conn_cfg = connector.get('config', {}) if isinstance(connector, dict) else {}
+        user_search = (conn_cfg.get('userSearch', {})
+                       if isinstance(conn_cfg, dict) else {})
+        if not isinstance(user_search, dict) or not user_search:
+            LOG.warning("Dex connector reconciliation skipped: connector is not "
+                        "a well-formed mapping with config.userSearch; leaving "
+                        "untouched.")
+            return
+
+        # Full-fingerprint match against the StarlingX default local-LDAP
+        # connector, using the same constants the generator uses.
+        is_default = (
+            connector.get('type') == 'ldap'
+            and connector.get('id') ==
+            app_constants.DEFAULT_DEX_LDAP_CONNECTOR_ID
+            and conn_cfg.get('bindDN') ==
+            app_constants.DEFAULT_DEX_LDAP_BIND_DN
+            and user_search.get('baseDN') ==
+            app_constants.DEFAULT_DEX_LDAP_BASE_DN
+        )
+        if not is_default:
+            LOG.info("Dex connector reconciliation skipped: connector does not "
+                     "match the default local-LDAP fingerprint; leaving "
+                     "customer configuration untouched.")
+            return
+
+        # nothing to do if the claim attr is already present.
+        if 'preferredUsernameAttr' in user_search:
+            return
+
+        # add preferredUsernameAttr; do NOT touch emailAttr /
+        # nameAttr on an existing system.
+        user_search['preferredUsernameAttr'] = \
+            app_constants.DEFAULT_DEX_LDAP_PREFERRED_USERNAME_ATTR
+
+        try:
+            user_overrides = yaml.safe_dump(
+                overrides, default_flow_style=False, sort_keys=False)
+            dbapi_instance.helm_override_update(
+                db_app.id, app_constants.HELM_CHART_DEX,
+                common.HELM_NS_KUBE_SYSTEM,
+                {'user_overrides': user_overrides},
+            )
+            LOG.info("Reconciled dex default connector: added "
+                     "preferredUsernameAttr to userSearch (upgrade heal).")
+        except Exception as e:
+            LOG.warning("Failed to persist dex connector reconciliation: %s", e)
 
     def _load_kube_config(self):
         """Load and initialize the Kubernetes admin configuration.

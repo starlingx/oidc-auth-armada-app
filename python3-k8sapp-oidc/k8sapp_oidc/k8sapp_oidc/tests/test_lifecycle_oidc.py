@@ -811,3 +811,228 @@ class TestConfigureDexOverride(unittest.TestCase):
         values = mock_update.call_args.kwargs['values_dict']
         host = values['config']['connectors'][0]['config']['host']
         self.assertEqual(host, '[fd00::1]:636')
+
+
+class TestReconcileDexConnectorDefaults(unittest.TestCase):
+    """Tests for _reconcile_dex_connector_defaults.
+
+    Guards the upgrade heal of the stale local-LDAP connector that older
+    releases (e.g. 26.03) persisted into user_overrides without
+    preferredUsernameAttr. The reconciliation is additive-only (adds
+    preferredUsernameAttr), full-fingerprint gated (StarlingX default local-LDAP
+    connector id / baseDN / bindDN), and idempotent.
+    """
+
+    def setUp(self):
+        self.operator = OidcAppLifecycleOperator.__new__(
+            OidcAppLifecycleOperator
+        )
+        self.dbapi = mock.MagicMock()
+        db_app = mock.MagicMock()
+        db_app.id = 1
+        self.dbapi.kube_app_get.return_value = db_app
+
+    def _set_dex_overrides(self, overrides_dict):
+        override = mock.MagicMock()
+        if overrides_dict is None:
+            override.user_overrides = None
+        else:
+            override.user_overrides = yaml.safe_dump(overrides_dict)
+        self.dbapi.helm_override_get.return_value = override
+
+    def _default_connector(self, user_search):
+        return {
+            'config': {
+                'connectors': [
+                    {
+                        'type': 'ldap',
+                        'id': 'ldap-1',
+                        'name': 'ldap-1',
+                        'config': {
+                            'bindDN': 'CN=ldapadmin,DC=cgcs,DC=local',
+                            'userSearch': user_search,
+                        },
+                    }
+                ]
+            }
+        }
+
+    def _get_persisted_user_search(self):
+        self.assertTrue(self.dbapi.helm_override_update.called)
+        args, _kwargs = self.dbapi.helm_override_update.call_args
+        # positional: (app_id, chart, namespace, {'user_overrides': yaml})
+        values = args[3]
+        overrides = yaml.safe_load(values['user_overrides'])
+        return (overrides['config']['connectors'][0]
+                ['config']['userSearch'])
+
+    def test_stale_default_connector_gets_preferred_username_added(self):
+        self._set_dex_overrides(self._default_connector({
+            'baseDN': 'ou=People,dc=cgcs,dc=local',
+            'filter': '(objectClass=posixAccount)',
+            'username': 'uid',
+            'idAttr': 'DN',
+            'emailAttr': 'uid',
+            'nameAttr': 'gecos',
+        }))
+        self.operator._reconcile_dex_connector_defaults(self.dbapi)
+        us = self._get_persisted_user_search()
+        self.assertEqual(us['preferredUsernameAttr'], 'uid')
+        # Additive-only: emailAttr/nameAttr must NOT be normalized in place.
+        self.assertEqual(us['emailAttr'], 'uid')
+        self.assertEqual(us['nameAttr'], 'gecos')
+
+    def test_already_correct_connector_is_noop(self):
+        self._set_dex_overrides(self._default_connector({
+            'baseDN': 'ou=People,dc=cgcs,dc=local',
+            'username': 'uid',
+            'idAttr': 'DN',
+            'emailAttr': 'mail',
+            'nameAttr': 'cn',
+            'preferredUsernameAttr': 'uid',
+        }))
+        self.operator._reconcile_dex_connector_defaults(self.dbapi)
+        self.dbapi.helm_override_update.assert_not_called()
+
+    def test_customized_connector_different_basedn_untouched(self):
+        self._set_dex_overrides(self._default_connector({
+            'baseDN': 'ou=Users,dc=example,dc=com',
+            'username': 'uid',
+            'idAttr': 'DN',
+            'emailAttr': 'uid',
+            'nameAttr': 'gecos',
+        }))
+        self.operator._reconcile_dex_connector_defaults(self.dbapi)
+        self.dbapi.helm_override_update.assert_not_called()
+
+    def test_multiple_connectors_untouched(self):
+        overrides = self._default_connector({
+            'baseDN': 'ou=People,dc=cgcs,dc=local',
+            'username': 'uid',
+            'idAttr': 'DN',
+            'emailAttr': 'uid',
+            'nameAttr': 'gecos',
+        })
+        # Add a second (external) connector -> customer setup, skip entirely.
+        overrides['config']['connectors'].append({
+            'type': 'oidc',
+            'id': 'keycloak',
+            'name': 'keycloak',
+            'config': {},
+        })
+        self._set_dex_overrides(overrides)
+        self.operator._reconcile_dex_connector_defaults(self.dbapi)
+        self.dbapi.helm_override_update.assert_not_called()
+
+    def test_partial_default_customized_emailattr_only_adds_preferred(self):
+        # Default fingerprint (id/baseDN/bindDN) but customer changed emailAttr.
+        # Must add preferredUsernameAttr ONLY and leave emailAttr customized.
+        self._set_dex_overrides(self._default_connector({
+            'baseDN': 'ou=People,dc=cgcs,dc=local',
+            'username': 'uid',
+            'idAttr': 'DN',
+            'emailAttr': 'customMailAttr',
+            'nameAttr': 'gecos',
+        }))
+        self.operator._reconcile_dex_connector_defaults(self.dbapi)
+        us = self._get_persisted_user_search()
+        self.assertEqual(us['preferredUsernameAttr'], 'uid')
+        self.assertEqual(us['emailAttr'], 'customMailAttr')
+        self.assertEqual(us['nameAttr'], 'gecos')
+
+    def test_absent_user_overrides_is_noop(self):
+        self._set_dex_overrides(None)
+        self.operator._reconcile_dex_connector_defaults(self.dbapi)
+        self.dbapi.helm_override_update.assert_not_called()
+
+    def test_already_correct_second_run_no_write(self):
+        # Idempotency: a connector already carrying preferredUsernameAttr
+        # produces no write.
+        self._set_dex_overrides(self._default_connector({
+            'baseDN': 'ou=People,dc=cgcs,dc=local',
+            'username': 'uid',
+            'idAttr': 'DN',
+            'emailAttr': 'mail',
+            'nameAttr': 'cn',
+            'preferredUsernameAttr': 'uid',
+        }))
+        self.operator._reconcile_dex_connector_defaults(self.dbapi)
+        self.dbapi.helm_override_update.assert_not_called()
+
+
+class TestAppLifecycleDispatch(unittest.TestCase):
+    """Dispatch tests for app_lifecycle_actions.
+
+    Guards the key upgrade fix: the connector reconciliation must be reachable
+    on the resource/pre apply hook, which is emitted by
+    AppOperator.perform_app_apply and therefore fires on the automatic upgrade
+    apply path (perform_app_update -> perform_app_apply). The operation/pre
+    apply hook is emitted only by the conductor RPC boundary
+    (manager.perform_app_apply) and thus does NOT fire on the upgrade apply.
+    """
+
+    def setUp(self):
+        from sysinv.helm.lifecycle_constants import LifecycleConstants as Lc
+        from sysinv.common import constants
+        self.Lc = Lc
+        self.constants = constants
+        self.operator = OidcAppLifecycleOperator.__new__(
+            OidcAppLifecycleOperator
+        )
+
+    def _hook(self, lifecycle_type, relative_timing, operation, extra=None):
+        hook = mock.MagicMock()
+        hook.lifecycle_type = lifecycle_type
+        hook.relative_timing = relative_timing
+        hook.operation = operation
+        hook.mode = None
+        hook.extra = extra if extra is not None else {}
+        return hook
+
+    @mock.patch.object(OidcAppLifecycleOperator, 'pre_apply_resource')
+    def test_resource_pre_apply_routes_to_pre_apply_resource(self, mock_res):
+        hook = self._hook(
+            self.Lc.APP_LIFECYCLE_TYPE_RESOURCE,
+            self.Lc.APP_LIFECYCLE_TIMING_PRE,
+            self.constants.APP_APPLY_OP,
+        )
+        context = mock.MagicMock()
+        conductor = mock.MagicMock()
+        app = mock.MagicMock()
+
+        self.operator.app_lifecycle_actions(
+            context, conductor, mock.MagicMock(), app, hook)
+
+        mock_res.assert_called_once_with(context, conductor, app)
+
+    @mock.patch.object(OidcAppLifecycleOperator, 'pre_apply_operation')
+    def test_operation_pre_apply_routes_to_pre_apply_operation(self, mock_op):
+        hook = self._hook(
+            self.Lc.APP_LIFECYCLE_TYPE_OPERATION,
+            self.Lc.APP_LIFECYCLE_TIMING_PRE,
+            self.constants.APP_APPLY_OP,
+        )
+        context = mock.MagicMock()
+        conductor = mock.MagicMock()
+        app = mock.MagicMock()
+
+        self.operator.app_lifecycle_actions(
+            context, conductor, mock.MagicMock(), app, hook)
+
+        mock_op.assert_called_once_with(context, conductor, app)
+
+    @mock.patch.object(OidcAppLifecycleOperator,
+                       '_reconcile_dex_connector_defaults')
+    @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.dbapi')
+    def test_pre_apply_resource_calls_reconcile(self, mock_dbapi_mod,
+                                                mock_reconcile):
+        dbapi_instance = mock.MagicMock()
+        mock_dbapi_mod.get_instance.return_value = dbapi_instance
+
+        self.operator.pre_apply_resource(
+            context=mock.MagicMock(),
+            conductor_obj=mock.MagicMock(),
+            app=mock.MagicMock(),
+        )
+
+        mock_reconcile.assert_called_once_with(dbapi_instance)
