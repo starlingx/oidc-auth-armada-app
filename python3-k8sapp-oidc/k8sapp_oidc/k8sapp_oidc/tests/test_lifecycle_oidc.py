@@ -759,3 +759,55 @@ class TestPreApplyCheck(unittest.TestCase):
         )
 
         mock_validate.assert_not_called()
+
+
+class TestConfigureDexOverride(unittest.TestCase):
+    """Tests for _configure_dex_override userSearch attribute mappings.
+
+    Guards against the lifecycle-generated Dex LDAP connector drifting
+    from the bootstrap template (dex-overrides.yaml.j2). The connector
+    must emit a non-empty preferred_username claim so the Keystone
+    federated_users catch-all mapping matches and the reader fallback
+    applies; emailAttr/nameAttr are kept aligned with bootstrap as the
+    single source of truth.
+    """
+
+    def setUp(self):
+        self.operator = OidcAppLifecycleOperator.__new__(
+            OidcAppLifecycleOperator
+        )
+        self.dbapi = mock.MagicMock()
+
+    def _get_user_search(self, mock_update):
+        """Extract the connector userSearch dict from the override call."""
+        self.assertTrue(mock_update.called)
+        values = mock_update.call_args.kwargs['values_dict']
+        connector = values['config']['connectors'][0]
+        return connector['config']['userSearch']
+
+    @mock.patch.object(OidcAppLifecycleOperator, '_update_helm_user_overrides')
+    def test_user_search_has_preferred_username_attr(self, mock_update):
+        self.operator._configure_dex_override(
+            self.dbapi, '10.10.10.2', 'ldap-secret')
+        user_search = self._get_user_search(mock_update)
+        self.assertEqual(user_search['preferredUsernameAttr'], 'uid')
+
+    @mock.patch.object(OidcAppLifecycleOperator, '_update_helm_user_overrides')
+    def test_user_search_matches_bootstrap_template(self, mock_update):
+        # Aligned with dex-overrides.yaml.j2 (single source of truth).
+        self.operator._configure_dex_override(
+            self.dbapi, '10.10.10.2', 'ldap-secret')
+        user_search = self._get_user_search(mock_update)
+        self.assertEqual(user_search['emailAttr'], 'mail')
+        self.assertEqual(user_search['nameAttr'], 'cn')
+        self.assertEqual(user_search['preferredUsernameAttr'], 'uid')
+        self.assertEqual(user_search['username'], 'uid')
+        self.assertEqual(user_search['idAttr'], 'DN')
+
+    @mock.patch.object(OidcAppLifecycleOperator, '_update_helm_user_overrides')
+    def test_ipv6_mgmt_ip_is_bracketed(self, mock_update):
+        self.operator._configure_dex_override(
+            self.dbapi, 'fd00::1', 'ldap-secret')
+        values = mock_update.call_args.kwargs['values_dict']
+        host = values['config']['connectors'][0]['config']['host']
+        self.assertEqual(host, '[fd00::1]:636')
