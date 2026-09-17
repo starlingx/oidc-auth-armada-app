@@ -335,6 +335,14 @@ class TestPostApplyIdempotency(unittest.TestCase):
     triggered when federation is not already configured, avoiding
     redundant config target churn and transient 250.001 alarms on
     auto-reapply (CGTS-104290).
+
+    Also guards the federation-on-upgrade regression: the guard must key
+    on the completion sentinel (KEYSTONE_FEDERATION_SENTINEL), written only
+    after the keystone-gated federation resource execs succeed, and NOT on
+    /etc/keystone/dex_mapping.json (rendered unconditionally by puppet). If
+    the guard keyed on the mapping file, an upgrade activate window (mapping
+    file present, resources absent) would permanently suppress federation
+    arming.
     """
 
     def setUp(self):
@@ -363,14 +371,14 @@ class TestPostApplyIdempotency(unittest.TestCase):
 
     @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.os.path.isfile')
     @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.dbapi')
-    def test_triggers_when_federation_marker_absent(
+    def test_triggers_when_federation_sentinel_absent(
             self, mock_dbapi_mod, mock_isfile):
-        # initial_config_complete present (True), federation marker
+        # initial_config_complete present (True), federation sentinel
         # absent (False) -> should trigger via conductor
         from k8sapp_oidc.lifecycle import lifecycle_oidc
 
         def isfile_side_effect(path):
-            if path == lifecycle_oidc.KEYSTONE_FEDERATION_MARKER:
+            if path == lifecycle_oidc.KEYSTONE_FEDERATION_SENTINEL:
                 return False
             return True
         mock_isfile.side_effect = isfile_side_effect
@@ -381,6 +389,54 @@ class TestPostApplyIdempotency(unittest.TestCase):
 
         self.conductor._config_update_hosts.assert_called_once()
         self.conductor._config_apply_runtime_manifest.assert_called_once()
+
+    @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.os.path.isfile')
+    @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.dbapi')
+    def test_triggers_when_sentinel_absent_even_if_mapping_present(
+            self, mock_dbapi_mod, mock_isfile):
+        # Regression guard (federation-on-upgrade): during upgrade activate, puppet renders
+        # /etc/keystone/dex_mapping.json unconditionally while the keystone-gated resource
+        # execs are skipped, so federation resources are NOT actually configured. The guard
+        # must key on the completion sentinel.
+        from k8sapp_oidc.lifecycle import lifecycle_oidc
+
+        def isfile_side_effect(path):
+            # Sentinel absent -> federation not configured. Everything else
+            # (initial_config_complete flag, dex_mapping.json, etc.) present.
+            if path == lifecycle_oidc.KEYSTONE_FEDERATION_SENTINEL:
+                return False
+            return True
+        mock_isfile.side_effect = isfile_side_effect
+        mock_dbapi_mod.get_instance.return_value = mock.MagicMock()
+        self.conductor._config_update_hosts.return_value = 'config-uuid'
+
+        self.operator.post_apply(self.context, self.conductor)
+
+        self.conductor._config_update_hosts.assert_called_once()
+        self.conductor._config_apply_runtime_manifest.assert_called_once()
+
+    @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.open',
+                new_callable=mock.mock_open)
+    @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.os.path.isfile')
+    @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.dbapi')
+    def test_writes_deferred_flag_on_upgrade_when_sentinel_absent(
+            self, mock_dbapi_mod, mock_isfile, mock_open_fn):
+        # Upgrade path: conductor_obj is None (manifest/post hook), sentinel
+        # absent -> post_apply must fall through the guard and write the
+        # deferred federation flag for the conductor periodic audit to pick up.
+        from k8sapp_oidc.lifecycle import lifecycle_oidc
+
+        def isfile_side_effect(path):
+            if path == lifecycle_oidc.KEYSTONE_FEDERATION_SENTINEL:
+                return False
+            return True
+        mock_isfile.side_effect = isfile_side_effect
+        mock_dbapi_mod.get_instance.return_value = mock.MagicMock()
+
+        self.operator.post_apply(self.context, conductor_obj=None)
+
+        mock_open_fn.assert_called_once_with(
+            lifecycle_oidc.constants.FEDERATION_CONFIG_REQUIRED, 'w')
 
     @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.os.path.isfile')
     @mock.patch('k8sapp_oidc.lifecycle.lifecycle_oidc.dbapi')
