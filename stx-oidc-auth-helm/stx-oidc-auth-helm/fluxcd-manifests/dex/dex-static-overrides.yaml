@@ -31,6 +31,10 @@ service:
   ports:
     https:
       nodePort: 30556
+    http:
+      nodePort: 30557
+    telemetry:
+      nodePort: 30668
 https:
   enabled: true
 grpc:

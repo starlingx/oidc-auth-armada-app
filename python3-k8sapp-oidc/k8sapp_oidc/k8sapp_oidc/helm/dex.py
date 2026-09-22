@@ -89,6 +89,12 @@ class Dex(DexBaseHelm):
             'ports': {
                 'https': {
                     'nodePort': self.DEX_NODE_PORT
+                },
+                'http': {
+                    'nodePort': self.DEX_HTTP_NODE_PORT
+                },
+                'telemetry': {
+                    'nodePort': self.DEX_TELEMETRY_NODE_PORT
                 }
             }
         }

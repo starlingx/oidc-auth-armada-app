@@ -37,6 +37,8 @@ class TestDexBaseHelm(unittest.TestCase):
         instance = self._create_instance()
         self.assertEqual(instance.OIDC_CLIENT_NODE_PORT, 30555)
         self.assertEqual(instance.DEX_NODE_PORT, 30556)
+        self.assertEqual(instance.DEX_TELEMETRY_NODE_PORT, 30668)
+        self.assertEqual(instance.DEX_HTTP_NODE_PORT, 30557)
         self.assertEqual(instance.OAUTH2_PROXY_PORT, 5000)
 
     def test_get_client_id(self):
@@ -128,9 +130,11 @@ class TestDexHelm(unittest.TestCase):
         """Test service nodePort is set correctly."""
         instance = self._create_instance()
         overrides = instance.get_overrides(namespace='kube-system')
-        self.assertEqual(
-            overrides['service']['ports']['https']['nodePort'],
-            tc.DEX_NODE_PORT)
+        ports = overrides['service']['ports']
+        self.assertEqual(ports['https']['nodePort'], tc.DEX_NODE_PORT)
+        # http and telemetry must be pinned, not random.
+        self.assertEqual(ports['http']['nodePort'], 30557)
+        self.assertEqual(ports['telemetry']['nodePort'], 30668)
 
 
 class TestOidcClientHelm(unittest.TestCase):
