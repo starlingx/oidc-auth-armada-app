@@ -43,19 +43,15 @@ CERTIFICATE_NAMESPACE = common.HELM_NS_KUBE_SYSTEM
 CERTIFICATE_PLURAL = "certificates"
 CERTIFICATE_NAME = "oidc-auth-apps-certificate"
 
-# Artifact created by the openstack::keystone::federation puppet class when
-# federation is configured. Used as a run-once marker: once federation has
-# been set up, subsequent auto-reapplies of oidc-auth-apps skip re-triggering
-# the runtime manifest, which would otherwise churn the host config target and
-# raise a transient config-out-of-date (250.001) alarm.
+# Completion sentinel created by the federation puppet class ONLY after federation resources
+# have been created successfully. Also, once federation is actually set up, subsequent
+# auto-reapplies of oidc-auth-apps skip re-triggering the runtime manifest to avoid raising
+# transient config-out-of-date (250.001) alarm. Guard on the created sentinel and not on
+# dex_mapping.json because that file is written before resources exist and would false-positive.
 #
-# Note on reconfiguration: because the trigger is skipped whenever this marker
-# exists, changing federation parameters after initial setup is NOT applied
-# via an oidc-auth-apps re-apply. Reconfiguration is handled through the
-# service-parameter path (`system service-parameter-apply identity`), which
-# triggers openstack::keystone::server::runtime directly regardless of this
-# marker. This marker only short-circuits the app-reapply trigger.
-KEYSTONE_FEDERATION_MARKER = "/etc/keystone/dex_mapping.json"
+# Note: reconfiguration is applied via `system service-parameter-apply identity`, which
+# triggers the keystone runtime manifest directly and is not gated by this sentinel.
+KEYSTONE_FEDERATION_SENTINEL = "/etc/keystone/.federation_configured"
 
 
 class OidcAppLifecycleOperator(base.AppLifecycleOperator):
@@ -297,23 +293,18 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
                      "Keystone federation trigger")
             return
 
-        # Guard against re-running: if the federation marker exists,
-        # federation has already been set up, so skip the trigger.
-        # oidc-auth-apps is auto-reapplied on events such as host
-        # availability changes; re-triggering the runtime manifest on every
-        # apply churns the host config target and raises a transient
-        # config-out-of-date (250.001) alarm, even though the federation
-        # puppet class is a no-op when the resources already exist. The
-        # marker is created by the federation puppet class, so its presence
-        # indicates federation setup already ran.
+        # If the completion sentinel exists, federation resources are already created, so skip
+        # the trigger. oidc-auth-apps is auto-reapplied on events such as host availability
+        # changes, so re-triggering the runtime manifest on every apply churns the host config
+        # target and raises a config-out-of-date (250.001) alarm, even though the federation
+        # puppet class is a no-op when the resources already exist.
         #
-        # Reconfiguration is applied via `system service-parameter-apply identity`,
-        # which triggers the keystone runtime manifest directly and is not gated
-        # by this marker.
-        if os.path.isfile(KEYSTONE_FEDERATION_MARKER):
-            LOG.info("Keystone federation marker %s present; "
+        # Reconfiguration is applied via `system service-parameter-apply identity`, which
+        # triggers the keystone runtime manifest directly and is not gated by this sentinel.
+        if os.path.isfile(KEYSTONE_FEDERATION_SENTINEL):
+            LOG.info("Keystone federation sentinel %s present; "
                      "skipping federation trigger (already set up)"
-                     % KEYSTONE_FEDERATION_MARKER)
+                     % KEYSTONE_FEDERATION_SENTINEL)
             return
 
         if conductor_obj is not None:
