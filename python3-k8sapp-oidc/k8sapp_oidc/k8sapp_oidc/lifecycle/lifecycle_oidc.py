@@ -159,6 +159,16 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
         self._load_kube_config()
         dbapi_instance = dbapi.get_instance()
 
+        # Skip the apply while a controller is locking/unlocking: its pods
+        # can't be scheduled mid-transition and the apply would fail. The
+        # audit retries once controllers are stable.
+        transitioning = self._get_transitioning_controllers(dbapi_instance)
+        if transitioning:
+            raise exception.LifecycleSemanticCheckException(
+                "Apply deferred: controller(s) transitioning: %s"
+                % ", ".join(transitioning)
+            )
+
         # Fully configured locally, apply it
         if self._is_oidc_overrides_fully_configured(dbapi_instance):
             self._validate_dex_tls_secret(dbapi_instance)
@@ -474,6 +484,32 @@ class OidcAppLifecycleOperator(base.AppLifecycleOperator):
         except Exception as e:
             raise exception.SysinvException(
                 "Failed to retrieve cloud role"
+            ) from e
+
+    def _get_transitioning_controllers(self, dbapi_instance):
+        """Return controllers that are mid lock/unlock transition.
+
+        A controller is transitioning while host.task is set (Locking,
+        Unlocking, Rebooting, ...); it is empty once the host is stable,
+        whether locked or unlocked. Both stable states are allowed, only the
+        transition is blocked.
+
+        :param sysinv.db.api.DbApi dbapi_instance: Sysinv database API instance.
+
+        :returns list: hostnames of transitioning controllers, empty if none.
+        """
+        try:
+            transitioning = []
+            for host in dbapi_instance.ihost_get_by_personality(
+                    constants.CONTROLLER):
+                if (host.task or "").strip():
+                    transitioning.append(host.hostname)
+
+            return transitioning
+
+        except Exception as e:
+            raise exception.SysinvException(
+                "Failed to check controller lock/unlock state"
             ) from e
 
     def _default_oidc_configuration(self, dbapi_instance):
