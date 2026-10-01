@@ -261,6 +261,7 @@
       tox_envlist: coverage
       tox_extra_args: -c python3-k8sapp-oidc/k8sapp_oidc/tox.ini
       tox_constraints_file: '{{ ansible_user_dir }}/src/opendev.org/starlingx/root/build-tools/requirements/debian/upper-constraints.txt'
+    post-run: playbooks/upload-coverage-reports.yaml
 
 - job:
     name: k8sapp-oidc-tox-security

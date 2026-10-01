@@ -116,7 +116,9 @@ class TestDexHelm(unittest.TestCase):
         clients = instance._get_static_clients()
         self.assertEqual(len(clients), 1)
         self.assertEqual(clients[0]['id'], 'stx-oidc-client-app')
-        self.assertEqual(len(clients[0]['redirectURIs']), 2)
+        # Non-DC system: /callback, /oauth2/callback, OAM:8000 and
+        # localhost:8000 oidc-login CLI redirect URIs.
+        self.assertEqual(len(clients[0]['redirectURIs']), 4)
 
     def test_issuer_url_format(self):
         """Test issuer URL is correctly formatted."""
