@@ -61,6 +61,27 @@ if [ "${APP_STATUS}" != "applied" ]; then
     exit 0
 fi
 
+# 900.005 - Platform upgrade in progress
+# 900.007 - Kubernetes upgrade in progress
+# 900.023 - USM software deploy in progress
+# 900.201 - fm_constants.FM_ALARM_ID_SW_UPGRADE_AUTO_APPLY_INPROGRESS
+# 900.401 - fm_constants.FM_ALARM_ID_KUBE_UPGRADE_AUTO_APPLY_INPROGRESS
+UPGRADE_ALARM_IDS="900.005 900.007 900.023 900.201 900.401"
+FM_OUTPUT=$(fm alarm-list --nowrap 2>&1)
+if [ $? -ne 0 ]; then
+    log_error "Unable to query alarms; skipping oidc-dc-sync"
+    exit 0
+fi
+ACTIVE_ALARMS=$(echo "${FM_OUTPUT}" | cut -d'|' -f2 | tr -d ' ' | grep -E '^[0-9]')
+
+for alarm_id in ${UPGRADE_ALARM_IDS}; do
+    if echo "${ACTIVE_ALARMS}" | grep -q "^${alarm_id}$"; then
+        log_info "Upgrade in progress (alarm ${alarm_id}); \
+skipping oidc-dc-sync until it clears"
+        exit 0
+    fi
+done
+
 # Build a fingerprint of managed subclouds using default columns
 # plus updated_at. This captures adds, removes, and any record
 # update (OAM change, rehome, state change, etc.)
