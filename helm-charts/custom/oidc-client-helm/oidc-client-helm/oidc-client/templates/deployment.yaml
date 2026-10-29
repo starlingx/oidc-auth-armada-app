@@ -60,7 +60,7 @@ spec:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           command: ["./stx-oidc-client"]
-          args: ["--config", "/etc/dex/cfg/config.yaml", "--debug"]
+          args: ["--config", "/etc/dex/cfg/config.yaml"]
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
